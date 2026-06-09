@@ -478,6 +478,7 @@ export default function HabitsPage() {
             </div>
           </div>
         </div>
+        
       </section>
     </div>
   );

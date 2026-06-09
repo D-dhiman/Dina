@@ -1,12 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import Navbar from "../components/navbar";
 
 const sections = [
-  {
-    title: "Journal",
-    description: "Capture your thoughts and reflections",
-    pill: "0 entries today",
-    color: "bg-emerald-50 text-emerald-700",
-  },
   {
     title: "Habits",
     description: "Build and maintain your daily habits",
@@ -21,22 +18,158 @@ const sections = [
   },
 ];
 
+const weekDays = [
+  {
+    label: "Mon",
+    day: "11",
+    events: [
+      { label: "Doctor visit", color: "bg-rose-400" },
+      { label: "Meditation", color: "bg-indigo-400" },
+    ],
+  },
+  {
+    label: "Tue",
+    day: "12",
+    events: [
+      { label: "Therapy call", color: "bg-emerald-400" },
+    ],
+  },
+  {
+    label: "Wed",
+    day: "13",
+    events: [
+      { label: "Gym session", color: "bg-sky-400" },
+      { label: "Supplements", color: "bg-orange-400" },
+    ],
+  },
+  {
+    label: "Thu",
+    day: "14",
+    events: [],
+  },
+  {
+    label: "Fri",
+    day: "15",
+    events: [
+      { label: "Nutrition review", color: "bg-fuchsia-400" },
+    ],
+  },
+  {
+    label: "Sat",
+    day: "16",
+    events: [],
+  },
+  {
+    label: "Sun",
+    day: "17",
+    events: [
+      { label: "Rest day", color: "bg-lime-400" },
+    ],
+  },
+];
+
+function WeeklyPlanner() {
+  const [selectedDay, setSelectedDay] = useState("Tue");
+
+  return (
+    <div className="mt-8 w-full rounded-3xl bg-slate-900 p-6 text-white">
+      <div className="flex items-center justify-between gap-4 pb-4">
+        <div>
+          <p className="text-sm text-slate-300">Weekly planner</p>
+          <p className="text-lg font-semibold text-white">Your health agenda</p>
+        </div>
+      </div>
+
+      <div className="flex gap-3 overflow-x-auto pb-3">
+        {weekDays.map((day) => {
+          const isSelected = day.label === selectedDay;
+          return (
+            <button
+              key={day.label}
+              onClick={() => setSelectedDay(day.label)}
+              className={`relative flex-shrink-0 rounded-3xl p-4 h-48 text-left transition-all duration-300 ease-out ${
+                isSelected
+                  ? "flex-[1.4] bg-emerald-500 shadow-2xl"
+                  : "flex-1 min-w-[88px] bg-slate-800"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span className="text-xs uppercase tracking-[0.18em] text-slate-300">
+                  {day.label}
+                </span>
+                <span className={`rounded-2xl px-2 py-1 text-sm font-semibold ${isSelected ? "bg-white/20 text-white" : "bg-slate-700 text-slate-200"}`}>
+                  {day.day}
+                </span>
+              </div>
+
+              <div className="mt-3 flex gap-2">
+                {day.events.length > 0 ? (
+                  day.events.map((event) => (
+                    <span key={event.label} className={`h-2.5 w-2.5 rounded-full ${event.color}`} />
+                  ))
+                ) : (
+                  <span className="text-[11px] text-slate-400">No plans</span>
+                )}
+              </div>
+
+              {isSelected && day.events.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  {day.events.map((event) => (
+                    <div key={event.label} className="flex items-center gap-3 rounded-3xl bg-white/10 px-3 py-2 text-sm text-white">
+                      <span className={`h-2.5 w-2.5 rounded-full ${event.color}`} />
+                      <span>{event.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <main className="max-w-4xl mx-auto px-6 py-8">
-        <h1 className="text-xl font-semibold text-gray-900 mb-1">Good morning 👋</h1>
-        <p className="text-gray-500 text-sm mb-6">Here's your overview for today</p>
+    <div className="min-h-screen bg-[#f8f9f5] pb-20">
+      <main className="w-full min-h-screen py-10 px-4 sm:px-6 lg:px-8">
+        <div className="w-full p-6 ">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h1 className="text-2xl sm:text-2xl font-bold text-[#284C24] mb-2">
+                Good morning 👋
+              </h1>
+              <p className="text-sm sm:text-sm text-[#855A1D]/80">
+                Here's your overview for today
+              </p>
+            </div>
 
-        <div className="grid grid-cols-3 gap-4">
+            <div className="flex items-center justify-between gap-3 lg:justify-end">
+              <div className="px-3 py-2 text-md font-medium text-amber-700 flex items-center gap-1">
+                <span className="text-xl">🔥</span>
+                <span>7</span>
+              </div>
+              <div className="rounded-full bg-[var(--dina-green)] w-11 h-11 flex items-center justify-center text-dina-green font-semibold text-md">
+                U
+              </div>
+            </div>
+          </div>
+        </div>
+
+<WeeklyPlanner />
+
+        <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
           {sections.map((s) => (
             <div
               key={s.title}
-              className="bg-white border border-gray-200 rounded-xl p-5"
+              className="w-full sm:w-1/2 bg-white border border-gray-200 rounded-3xl p-6 text-center"
             >
-              <h2 className="font-medium text-gray-900 mb-1">{s.title}</h2>
-              <p className="text-sm text-gray-500 mb-3">{s.description}</p>
-              <span className={`text-xs px-2.5 py-1 rounded-full ${s.color}`}>
+              <h2 className="font-semibold text-gray-900 text-lg mb-2">
+                {s.title}
+              </h2>
+              <p className="text-sm text-gray-500 mb-4">{s.description}</p>
+              <span className={`text-xs px-3 py-2 rounded-full ${s.color}`}>
                 {s.pill}
               </span>
             </div>

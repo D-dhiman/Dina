@@ -18,6 +18,7 @@
   --font-slab: var(--font-roboto-slab);
   --font-inter: var(--font-inter);
   --font-merriweather: var(--font-merriweather);
+  --font-playfair: var(--font-playfair);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -72,16 +73,16 @@ body {
   font-weight: 900;
   color: var(--dina-green);
   letter-spacing: 0.15em;
-  font-family: var(--font-slab), var(--font-sans), serif;
+  font-family: var(--font-playfair), var(--font-sans), serif;
 }
 
 .dina-catchphrase {
   font-size: 0.95rem;
-  font-weight: 300;
+  font-weight: 400;
   color: #555555;
   letter-spacing: 0.08em;
   line-height: 1.6;
-  font-family: var(--font-inter), var(--font-sans), sans-serif;
+  font-family: var(--font-lato), var(--font-sans), sans-serif;
 }
 
 .dina-button {
@@ -95,5 +96,12 @@ body {
   display: inline-block;
   text-decoration: none;
   cursor: pointer;
+}
+
+.profile-picture {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #cccccc;
 }
 

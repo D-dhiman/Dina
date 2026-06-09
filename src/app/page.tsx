@@ -21,7 +21,7 @@ export default function WelcomePage() {
         <div className="flex flex-col gap-1 justify-center flex-wrap mb-17">
           <p className="dina-heading">DINA-AI</p>
           <p className="dina-catchphrase">
-            DIGITAL INTELLIGENT NATURAL AYURVEDIC ASSISTANT
+            The ayurvedic assistant that you deserve.
           </p>
         </div>
 

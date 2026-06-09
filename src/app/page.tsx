@@ -1,27 +1,43 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function WelcomePage() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-4">
-      <div className="text-center max-w-md">
-        <h1 className="text-4xl font-semibold text-gray-900 mb-3">
-          Your health, simplified
-        </h1>
-        <p className="text-gray-500 text-base mb-8">
-          Track your habits, journal your thoughts, and understand your patterns.
-        </p>
-        <div className="flex gap-3 justify-center">
+    <main className="min-h-screen flex items-center justify-center px-4 dina-background">
+      <div className="flex flex-col items-center justify-center text-center">
+        {/* Logo Container */}
+        <div className="dina-logo-container mb-9">
+          <Image
+            src="/konak-wheel.svg"
+            alt="DINA-AI Logo"
+            width={70}
+            height={70}
+            priority
+          />
+        </div>
+
+        {/* Heading */}
+
+        <div className="flex flex-col gap-1 justify-center flex-wrap mb-17">
+          <p className="dina-heading">DINA-AI</p>
+          <p className="dina-catchphrase">
+            DIGITAL INTELLIGENT NATURAL AYURVEDIC ASSISTANT
+          </p>
+        </div>
+
+        {/* Buttons */}
+        <div className="flex flex-col gap-3 justify-center flex-wrap">
           <Link
             href="/dashboard"
-            className="bg-emerald-600 text-white px-6 py-2.5 rounded-lg text-sm hover:bg-emerald-700 transition"
+            className="dina-button"
           >
-            Get started
+            Login
           </Link>
           <Link
-            href="/login"
-            className="border border-gray-300 text-gray-700 px-6 py-2.5 rounded-lg text-sm hover:bg-gray-100 transition"
+            href="/dashboard"
+            className="dina-button"
           >
-            Log in
+            Continue as Guest
           </Link>
         </div>
       </div>

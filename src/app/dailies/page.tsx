@@ -77,23 +77,11 @@ export default function DailiesPage() {
       <main className="w-full py-12 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
         
         {/* Header Banner Component Block */}
-        <header className="flex items-center justify-between mb-12 border-b border-gray-200/60 pb-8 transition-all duration-300">
+        <header className="flex items-center justify-between mx-5 mb-8 border-b border-gray-200/60 pb-6 transition-all duration-300">
           <div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#112a11] tracking-tight flex items-center gap-2">
-              Good morning <span className="inline-block animate-bounce [animation-duration:3s]">👋</span>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-[#112a11] tracking-tight flex items-center gap-2">
+              Create a new Daily to improve your lifestyle
             </h1>
-            <p className="text-sm sm:text-base text-[#707a6c] font-medium mt-1.5">
-              Architect and customize your luxury routine presets
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-4 py-2 rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
-              <Flame size={18} className="text-amber-500 fill-amber-500" />
-              <span className="text-sm font-black text-amber-800">7</span>
-            </div>
-            <div className="w-11 h-11 rounded-full bg-[#052510] flex items-center justify-center text-white font-bold text-sm shadow-md cursor-pointer select-none ring-4 ring-[#052510]/10">
-              U
-            </div>
           </div>
         </header>
 
@@ -102,7 +90,7 @@ export default function DailiesPage() {
           <div className="flex items-center justify-between mb-10 pb-5 border-b border-gray-100">
             <h2 className="text-2xl font-black text-[#112a11] flex items-center gap-3">
               <Sparkles size={24} className="text-emerald-600 animate-pulse" />
-              Create Habit
+              Create new Daily
             </h2>
             <span className="hidden sm:inline-block text-xs font-bold text-emerald-700/80 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 uppercase tracking-widest">
               Standard Matrix Input

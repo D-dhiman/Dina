@@ -3,9 +3,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
+import { icons } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: "/home.svg" },
+  { label: "Habits", href:"/habits", icon: "/habits.svg" },
   { label: "Analysis", href: "/analysis", icon: "/analysis.svg" },
   { label: "Twin", href: "/twin", icon: "/twin.svg" },
   { label: "Profile", href: "/profile", icon: "/profile.svg" },

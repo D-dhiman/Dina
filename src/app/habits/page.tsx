@@ -296,13 +296,16 @@ export default function HabitsPage() {
         
         {/* Profile and Streak Heading Header from image_347ba8.png */}
         <header className="flex items-center justify-between mb-12 border-b border-gray-100 pb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-[#1e3a1e] tracking-tight flex items-center gap-2">
-              Good morning <span className="inline-block animate-bounce [animation-duration:3s]">👋</span>
-            </h1>
-            <p className="text-sm text-[#8a9485] font-medium mt-1">
-              Here's your overview for today
-            </p>
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-3xl font-bold text-[#1e3a1e] tracking-tight flex items-center gap-2">
+                Good morning 
+              </h1>
+              <p className="text-sm text-[#8a9485] font-medium mt-1">
+                Here's your overview for today
+              </p>
+            </div>
+            <span className="inline-block animate-wave [animation-duration:2s] text-4xl pb-2">👋</span>
           </div>
           
           <div className="flex items-center gap-4">

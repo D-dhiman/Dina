@@ -16,7 +16,7 @@ export default function Navbar() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-gray-200 flex items-center justify-around px-5 pt-4 pb-3 z-50">
+    <nav className="fixed bottom-0 left-0 right-0 h-18 bg-white border-t border-gray-200 flex items-center justify-center gap-49 pt-4 pb-3 z-50">
       {navItems.map((item) => (
         <Link
           key={item.href}

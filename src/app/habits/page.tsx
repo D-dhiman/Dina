@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Navbar from "../components/navbar";
 import { Plus, Edit, Trash2, RotateCcw, CalendarDays, Sparkles, Flame } from 'lucide-react';
+import Link from "next/link";
 import { 
   Chart, 
   CategoryScale, 
@@ -54,10 +55,10 @@ export default function HabitsPage() {
   const habitsVsDailiesChartRef = useRef<HTMLCanvasElement>(null);
 
   const handleStatusToggle = (id: number, type: 'daily' | 'habit', trigger: 'positive' | 'negative') => {
-    const updateList = (list: TrackedItem[]) => 
+    const updateList = (list: TrackedItem[]): TrackedItem[] =>
       list.map(item => {
         if (item.id === id) {
-          return { ...item, status: item.status === trigger ? 'neutral' : trigger };
+          return { ...item, status: item.status === trigger ? 'neutral' : trigger } as TrackedItem;
         }
         return item;
       });
@@ -296,16 +297,13 @@ export default function HabitsPage() {
         
         {/* Profile and Streak Heading Header from image_347ba8.png */}
         <header className="flex items-center justify-between mb-12 border-b border-gray-100 pb-6">
-          <div className="flex items-center gap-3">
-            <div>
-              <h1 className="text-3xl font-bold text-[#1e3a1e] tracking-tight flex items-center gap-2">
-                Good morning 
-              </h1>
-              <p className="text-sm text-[#8a9485] font-medium mt-1">
-                Here's your overview for today
-              </p>
-            </div>
-            <span className="inline-block animate-wave [animation-duration:2s] text-4xl pb-2">👋</span>
+          <div>
+            <h1 className="text-3xl font-bold text-[#1e3a1e] tracking-tight flex items-center gap-2">
+              Good morning <span className="inline-block animate-bounce [animation-duration:3s]">👋</span>
+            </h1>
+            <p className="text-sm text-[#8a9485] font-medium mt-1">
+              Track • Improve • Thrive
+            </p>
           </div>
           
           <div className="flex items-center gap-4">
@@ -333,16 +331,18 @@ export default function HabitsPage() {
                   <CalendarDays size={22} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-emerald-950">Dinacharya Dailies</h2>
+                  <h2 className="text-xl font-bold text-emerald-950">Dailies</h2>
                   <p className="text-xs text-emerald-700 font-medium mt-0.5">
                     {dailies.filter(d => d.status !== 'neutral').length}/{dailies.length} Completed
                   </p>
                 </div>
               </div>
-              <button className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-1.5 px-4 rounded-xl flex items-center gap-1.5 text-sm transition-all shadow-sm shadow-emerald-700/10 hover:shadow-md active:scale-95">
-                <Plus size={16} />
-                <span>Add Daily</span>
-              </button>
+              <Link href="/dailies">
+                <button className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-1.5 px-4 rounded-xl flex items-center gap-1.5 text-sm transition-all shadow-sm shadow-emerald-700/10 hover:shadow-md active:scale-95">
+                  <Plus size={16} />
+                  <span>Add Daily</span>
+                </button>
+              </Link>
             </div>
 
             <div className="space-y-4">
@@ -369,7 +369,7 @@ export default function HabitsPage() {
                     <span className="font-semibold text-base tracking-tight truncate pr-4">{item.name}</span>
                     <div className="flex gap-1.5 flex-shrink-0 bg-black/[0.03] p-1 rounded-xl opacity-40 hover:opacity-100 transition-opacity">
                       {item.status !== 'neutral' && (
-                        <button className="p-1 text-inherit hover:bg-black/5 rounded-md transition-all" onClick={() => handleStatusToggle(item.id, 'daily', item.status)} title="Reset status">
+                        <button className="p-1 text-inherit hover:bg-black/5 rounded-md transition-all" onClick={() => handleStatusToggle(item.id, 'daily', item.status as 'positive' | 'negative')} title="Reset status">
                           <RotateCcw size={15} />
                         </button>
                       )}
@@ -403,16 +403,20 @@ export default function HabitsPage() {
                   <Sparkles size={22} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-sky-950">Ritucharya Habits</h2>
+                  <h2 className="text-xl font-bold text-sky-950">Habits</h2>
                   <p className="text-xs text-sky-700 font-medium mt-0.5">
                     {habits.filter(h => h.status !== 'neutral').length}/{habits.length} Tracked Today
                   </p>
                 </div>
               </div>
-              <button className="bg-sky-700 hover:bg-sky-800 text-white font-semibold py-1.5 px-4 rounded-xl flex items-center gap-1.5 text-sm transition-all shadow-sm shadow-sky-700/10 hover:shadow-md active:scale-95">
-                <Plus size={16} />
-                <span>Add Habit</span>
-              </button>
+              <div className="flex gap-2">
+                <Link href="/habit2">
+                  <button className="bg-sky-700 hover:bg-sky-800 text-white font-semibold py-1.5 px-4 rounded-xl flex items-center gap-1.5 text-sm transition-all shadow-sm shadow-sky-700/10 hover:shadow-md active:scale-95">
+                    <Plus size={16} />
+                    <span>Add Habit</span>
+                  </button>
+                </Link>
+              </div>
             </div>
 
             <div className="space-y-4">
@@ -439,7 +443,7 @@ export default function HabitsPage() {
                     <span className="font-semibold text-base tracking-tight truncate pr-4">{item.name}</span>
                     <div className="flex gap-1.5 flex-shrink-0 bg-black/[0.03] p-1 rounded-xl opacity-40 hover:opacity-100 transition-opacity">
                       {item.status !== 'neutral' && (
-                        <button className="p-1 text-inherit hover:bg-black/5 rounded-md transition-all" onClick={() => handleStatusToggle(item.id, 'habit', item.status)} title="Reset status">
+                        <button className="p-1 text-inherit hover:bg-black/5 rounded-md transition-all" onClick={() => handleStatusToggle(item.id, 'habit', item.status as 'positive' | 'negative')} title="Reset status">
                           <RotateCcw size={15} />
                         </button>
                       )}

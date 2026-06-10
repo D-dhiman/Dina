@@ -1,7 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Navbar from "../components/navbar";
+import JournalLog from "../components/journalLog";
+import {
+  Chart,
+  CategoryScale,
+  LinearScale,
+  LineController,
+  LineElement,
+  PointElement,
+  BarController,
+  BarElement,
+  Tooltip,
+  Legend,
+  Filler,
+} from "chart.js";
+
+Chart.register(
+  CategoryScale,
+  LinearScale,
+  LineController,
+  LineElement,
+  PointElement,
+  BarController,
+  BarElement,
+  Tooltip,
+  Legend,
+  Filler,
+);
 
 const sections = [
   {
@@ -131,6 +158,93 @@ function WeeklyPlanner() {
 }
 
 export default function DashboardPage() {
+  const habitContinuityChartRef = useRef<HTMLCanvasElement>(null);
+  const healthOverviewChartRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const habitChartCanvas = habitContinuityChartRef.current;
+    const healthChartCanvas = healthOverviewChartRef.current;
+
+    if (!habitChartCanvas || !healthChartCanvas) return;
+
+    const habitCtx = habitChartCanvas.getContext("2d");
+    const healthCtx = healthChartCanvas.getContext("2d");
+    if (!habitCtx || !healthCtx) return;
+
+    const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const continuityData = [3, 4, 5, 4, 6, 7, 8];
+    const healthData = [78, 84, 82, 88, 90, 87, 92];
+
+    const habitChart = new Chart(habitCtx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Habit continuity",
+            data: continuityData,
+            borderColor: "rgb(34, 197, 94)",
+            backgroundColor: "rgba(34, 197, 94, 0.15)",
+            fill: true,
+            tension: 0.35,
+            pointRadius: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { intersect: false, mode: "index" },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            suggestedMax: 10,
+            ticks: { stepSize: 2 },
+          },
+        },
+      },
+    });
+
+    const healthChart = new Chart(healthCtx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Overall health score",
+            data: healthData,
+            backgroundColor: "rgba(59, 130, 246, 0.8)",
+            borderRadius: 12,
+            barPercentage: 0.65,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { intersect: false, mode: "index" },
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            suggestedMax: 100,
+            ticks: { stepSize: 20 },
+          },
+        },
+      },
+    });
+
+    return () => {
+      habitChart.destroy();
+      healthChart.destroy();
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#f8f9f5] pb-20">
       <main className="w-full min-h-screen py-10 px-4 sm:px-6 lg:px-8">
@@ -150,14 +264,14 @@ export default function DashboardPage() {
                 <span className="text-xl">🔥</span>
                 <span>7</span>
               </div>
-              <div className="rounded-full bg-[var(--dina-green)] w-11 h-11 flex items-center justify-center text-dina-green font-semibold text-md">
+              <div className="rounded-full bg-[var(--dina-green)] w-11 h-11 flex items-center justify-center text-white font-semibold text-md">
                 U
               </div>
             </div>
           </div>
         </div>
 
-<WeeklyPlanner />
+        <WeeklyPlanner />
 
         <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
           {sections.map((s) => (
@@ -175,6 +289,39 @@ export default function DashboardPage() {
             </div>
           ))}
         </div>
+
+        <div className ="mt-8 w-full rounded-3xl bg-[#80C963] p-3 text-white">
+          <JournalLog />
+        </div>
+
+        <div className="mt-8 grid gap-6 lg:grid-cols-2">
+          <section className="rounded-3xl bg-white p-6 shadow-sm border border-gray-200">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Habit continuity</p>
+                <h2 className="text-xl font-semibold text-slate-900">Weekly streak</h2>
+              </div>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-800">8 days</span>
+            </div>
+            <div className="h-72">
+              <canvas ref={habitContinuityChartRef}></canvas>
+            </div>
+          </section>
+
+          <section className="rounded-3xl bg-white p-6 shadow-sm border border-gray-200">
+            <div className="mb-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Overall health</p>
+                <h2 className="text-xl font-semibold text-slate-900">Health score trend</h2>
+              </div>
+              <span className="rounded-full bg-sky-50 px-3 py-1 text-sm font-semibold text-sky-800">Avg 86%</span>
+            </div>
+            <div className="h-72">
+              <canvas ref={healthOverviewChartRef}></canvas>
+            </div>
+          </section>
+        </div>
+
       </main>
       <Navbar />
     </div>

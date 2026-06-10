@@ -30,9 +30,9 @@ export default function Navbar() {
           <Image
             src={item.icon}
             alt={item.label}
-            width={22}
-            height={22}
-            className="w-6 h-6"
+            width={20}
+            height={20}
+            className="w-4.5 h-4.5"
           />
           <span className="text-[10px] font-normal">{item.label}</span>
         </Link>

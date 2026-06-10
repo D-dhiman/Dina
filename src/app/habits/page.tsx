@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
-import Navbar from "../components/navbar"; // Path updated to match your dashboard page
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import Navbar from "../components/navbar";
+import { Plus, Edit, Trash2, RotateCcw, CalendarDays, Sparkles, Flame } from 'lucide-react';
 import { 
   Chart, 
   CategoryScale, 
@@ -16,7 +16,6 @@ import {
   LineElement
 } from 'chart.js';
 
-// Explicitly register all required controllers and components
 Chart.register(
   CategoryScale, 
   LinearScale, 
@@ -29,18 +28,24 @@ Chart.register(
   BarElement
 );
 
+interface TrackedItem {
+  id: number;
+  name: string;
+  status: 'neutral' | 'positive' | 'negative';
+}
+
 export default function HabitsPage() {
-  const [dailies, setDailies] = useState([
-    { id: 1, name: 'Tongue scraping', completed: true },
-    { id: 2, name: 'Abhyanga oil massage', completed: false },
-    { id: 3, name: 'Early rising/Brahma Muhurta', completed: true }
+  const [dailies, setDailies] = useState<TrackedItem[]>([
+    { id: 1, name: 'Tongue scraping', status: 'positive' },
+    { id: 2, name: 'Abhyanga oil massage', status: 'neutral' },
+    { id: 3, name: 'Early rising/Brahma Muhurta', status: 'negative' }
   ]);
 
-  const [habits, setHabits] = useState([
-    { id: 1, name: 'Meditation', completed: false },
-    { id: 2, name: 'Yoga', completed: true },
-    { id: 3, name: 'Drinking warm water in the morning', completed: false },
-    { id: 4, name: 'Evening walk', completed: true }
+  const [habits, setHabits] = useState<TrackedItem[]>([
+    { id: 1, name: 'Meditation', status: 'neutral' },
+    { id: 2, name: 'Yoga', status: 'positive' },
+    { id: 3, name: 'Drinking warm water in the morning', status: 'neutral' },
+    { id: 4, name: 'Evening walk', status: 'negative' }
   ]);
 
   const heatmapGridRef = useRef<HTMLDivElement>(null);
@@ -48,7 +53,34 @@ export default function HabitsPage() {
   const complianceChartRef = useRef<HTMLCanvasElement>(null);
   const habitsVsDailiesChartRef = useRef<HTMLCanvasElement>(null);
 
-  // Generate GitHub-style horizontal yearly calendar matrix
+  const handleStatusToggle = (id: number, type: 'daily' | 'habit', trigger: 'positive' | 'negative') => {
+    const updateList = (list: TrackedItem[]) => 
+      list.map(item => {
+        if (item.id === id) {
+          return { ...item, status: item.status === trigger ? 'neutral' : trigger };
+        }
+        return item;
+      });
+
+    if (type === 'daily') {
+      setDailies(updateList(dailies));
+    } else {
+      setHabits(updateList(habits));
+    }
+  };
+
+  const handleModify = (id: number, type: 'daily' | 'habit') => {
+    alert(`Modify ${type} with id: ${id}`);
+  };
+
+  const handleDelete = (id: number, type: 'daily' | 'habit') => {
+    if (type === 'daily') {
+      setDailies(dailies.filter(daily => daily.id !== id));
+    } else {
+      setHabits(habits.filter(habit => habit.id !== id));
+    }
+  };
+
   useEffect(() => {
     if (!heatmapGridRef.current || !tooltipRef.current) return;
 
@@ -56,10 +88,8 @@ export default function HabitsPage() {
     const tooltip = tooltipRef.current;
 
     heatmapGrid.innerHTML = '';
-
     const year = 2026;
 
-    // Generate random data for each day of the year
     const yearData = [];
     for (let day = 0; day < 365; day++) {
       const date = new Date(year, 0, 1 + day);
@@ -69,7 +99,6 @@ export default function HabitsPage() {
       yearData.push({ date, compliance, completedHabits, totalHabits });
     }
 
-    // Find the Monday of the week that contains Jan 1
     const startDate = new Date(year, 0, 1);
     const dayOffset = (startDate.getDay() + 6) % 7; 
     const gridStart = new Date(startDate);
@@ -77,7 +106,6 @@ export default function HabitsPage() {
 
     const eventListeners: any[] = [];
 
-    // Column-First matrix: 53 columns, 7 rows
     for (let week = 0; week < 53; week++) {
       for (let weekday = 0; weekday < 7; weekday++) {
         const cell = document.createElement('div');
@@ -95,7 +123,7 @@ export default function HabitsPage() {
 
           let bgClass = 'bg-gray-100 dark:bg-gray-800';
           if (data.compliance >= 75) {
-            bgClass = 'bg-green-600';
+            bgClass = 'bg-[#15803d]';
           } else if (data.compliance >= 50) {
             bgClass = 'bg-green-400';
           } else if (data.compliance >= 25) {
@@ -117,7 +145,7 @@ export default function HabitsPage() {
             tooltip.innerHTML = `
                 <div class="font-semibold text-xs mb-1">${targetData.date}</div>
                 <div class="text-xs">Compliance: <span class="font-bold">${targetData.compliance}%</span></div>
-                <div class="text-xs text-gray-300">${targetData.completed}/${targetData.total} habits done</div>
+                <div class="text-xs text-gray-300">${targetData.completed}/${targetData.total} items done</div>
             `;
             tooltip.classList.remove('hidden');
             tooltip.className = "absolute z-30 bg-gray-900 text-white text-xs rounded p-2 shadow-md border border-gray-700 pointer-events-none whitespace-nowrap";
@@ -168,7 +196,6 @@ export default function HabitsPage() {
     };
   }, []);
 
-  // Safe types compiled fallback options for generic canvas context charts
   useEffect(() => {
     const canvas1 = complianceChartRef.current;
     const canvas2 = habitsVsDailiesChartRef.current;
@@ -198,10 +225,15 @@ export default function HabitsPage() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'top' }
+        legend: { position: 'top', labels: { font: { size: 12 } } },
+        tooltip: { padding: 8, cornerRadius: 4 }
       },
       scales: {
-        y: { beginAtZero: true, max: 100 }
+        y: { 
+          beginAtZero: true, 
+          max: 100,
+          ticks: { callback: function(value: any) { return value + '%'; } }
+        }
       }
     };
 
@@ -212,9 +244,11 @@ export default function HabitsPage() {
         datasets: [{
           label: 'Overall Compliance %',
           data: complianceData,
-          borderColor: 'rgb(34, 197, 94)',
-          backgroundColor: 'rgba(34, 197, 94, 0.1)',
-          tension: 0.3
+          borderColor: 'rgb(21, 128, 61)',
+          backgroundColor: 'rgba(21, 128, 61, 0.1)',
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 3
         }]
       },
       options: safeConfigOptions
@@ -228,12 +262,14 @@ export default function HabitsPage() {
           {
             label: 'Habits Compliance %',
             data: habitsData,
-            backgroundColor: 'rgba(59, 130, 246, 0.8)'
+            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+            borderRadius: 4
           },
           {
             label: 'Dailies Compliance %',
             data: dailiesData,
-            backgroundColor: 'rgba(16, 185, 129, 0.8)'
+            backgroundColor: 'rgba(16, 185, 129, 0.8)',
+            borderRadius: 4
           }
         ]
       },
@@ -246,66 +282,180 @@ export default function HabitsPage() {
     };
   }, []);
 
+  const getItemTextClasses = (status: 'neutral' | 'positive' | 'negative') => {
+    if (status === 'positive') return 'text-blue-950 transition-colors duration-300';
+    if (status === 'negative') return 'text-red-950 transition-colors duration-300';
+    return 'text-gray-800 transition-colors duration-300';
+  };
+
   return (
-    <div className="w-full min-h-screen bg-[#f8f9f5] pb-20">
-      {/* Navbar Added at layout base layout layer */}
+    <div className="w-full min-h-screen bg-[#fcfdfa] pb-20">
       <Navbar />
 
-      <main className="w-full min-h-screen py-10 px-4 sm:px-6 lg:px-8 container mx-auto">
-        {/* Header Title Banner */}
-        <header className="text-center mb-12">
-          <h1 className="text-3xl font-bold text-green-800">Dina AI Dashboard</h1>
-          <p className="text-lg text-green-600 mt-2">AI-driven Ayurvedic Dinacharya & Ritucharya Compliance Platform</p>
+      <main className="w-full py-10 px-4 sm:px-6 lg:px-8 container mx-auto">
+        
+        {/* Profile and Streak Heading Header from image_347ba8.png */}
+        <header className="flex items-center justify-between mb-12 border-b border-gray-100 pb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-[#1e3a1e] tracking-tight flex items-center gap-2">
+              Good morning <span className="inline-block animate-bounce [animation-duration:3s]">👋</span>
+            </h1>
+            <p className="text-sm text-[#8a9485] font-medium mt-1">
+              Here's your overview for today
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            {/* Streak Counter */}
+            <div className="flex items-center gap-1 bg-[#fffbeb] border border-[#fef3c7] px-3 py-1.5 rounded-full shadow-sm">
+              <Flame size={18} className="text-amber-500 fill-amber-500" />
+              <span className="text-sm font-bold text-amber-800">7</span>
+            </div>
+            
+            {/* User Profile Circle Avatar */}
+            <div className="w-10 h-10 rounded-full bg-[#062e14] border border-[#14532d] flex items-center justify-center text-white font-semibold text-sm shadow-inner cursor-pointer select-none">
+              U
+            </div>
+          </div>
         </header>
 
-        {/* Dashboard Panels Split Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-          {/* Dailies Column Card */}
-          <section>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-green-900">Dailies</h2>
-              <button className="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded flex items-center gap-1 text-sm">
+        {/* Segmented Trackers View Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+          
+          {/* Dailies Master Showcase Card Box */}
+          <section className="bg-emerald-50/60 border border-emerald-100 rounded-[32px] p-6 lg:p-8 shadow-sm backdrop-blur-sm">
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-emerald-100">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-emerald-700 rounded-2xl text-white shadow-md shadow-emerald-700/10">
+                  <CalendarDays size={22} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-emerald-950">Dinacharya Dailies</h2>
+                  <p className="text-xs text-emerald-700 font-medium mt-0.5">
+                    {dailies.filter(d => d.status !== 'neutral').length}/{dailies.length} Completed
+                  </p>
+                </div>
+              </div>
+              <button className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-1.5 px-4 rounded-xl flex items-center gap-1.5 text-sm transition-all shadow-sm shadow-emerald-700/10 hover:shadow-md active:scale-95">
                 <Plus size={16} />
-                <span>Create</span>
+                <span>Add Daily</span>
               </button>
             </div>
-            <div className="space-y-3">
+
+            <div className="space-y-4">
               {dailies.map(item => (
-                <div key={item.id} className="p-4 bg-white rounded-3xl shadow-sm border border-gray-200 flex justify-between items-center">
-                  <span className="flex-1 text-gray-800 font-medium">{item.name}</span>
-                  <div className="flex gap-2">
-                    <button className="text-green-600 hover:text-green-800" onClick={() => handleModify(item.id, 'daily')}>
-                      <Edit size={16} />
-                    </button>
-                    <button className="text-red-500 hover:text-red-700" onClick={() => handleDelete(item.id, 'daily')}>
-                      <Trash2 size={16} />
-                    </button>
+                <div 
+                  key={item.id} 
+                  className={`rounded-2xl border transition-all duration-300 flex justify-between items-stretch overflow-hidden select-none min-h-[72px] shadow-sm relative bg-white ${
+                    item.status === 'positive' ? 'border-blue-300' : item.status === 'negative' ? 'border-red-300' : 'border-gray-100/80'
+                  }`}
+                >
+                  <div className={`absolute top-0 left-0 h-full bg-blue-50/90 transition-all duration-500 ease-out z-0 pointer-events-none ${item.status === 'positive' ? 'w-full' : 'w-0'}`} />
+                  <div className={`absolute top-0 right-0 h-full bg-red-50/90 transition-all duration-500 ease-out z-0 pointer-events-none ${item.status === 'negative' ? 'w-full' : 'w-0'}`} />
+
+                  <div className={`flex items-center justify-center transition-all duration-500 ease-out z-10 relative overflow-hidden ${
+                    item.status !== 'neutral' ? 'w-0 opacity-0 px-0' : 'w-12 opacity-100 px-3 bg-gray-50 border-r border-gray-100'
+                  }`}>
+                    <button 
+                      onClick={() => handleStatusToggle(item.id, 'daily', 'positive')}
+                      className="w-3.5 h-10 rounded-full bg-blue-500/90 hover:bg-blue-600 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer"
+                    />
+                  </div>
+                  
+                  <div className={`flex-1 px-5 flex items-center justify-between min-w-0 z-10 relative ${getItemTextClasses(item.status)}`}>
+                    <span className="font-semibold text-base tracking-tight truncate pr-4">{item.name}</span>
+                    <div className="flex gap-1.5 flex-shrink-0 bg-black/[0.03] p-1 rounded-xl opacity-40 hover:opacity-100 transition-opacity">
+                      {item.status !== 'neutral' && (
+                        <button className="p-1 text-inherit hover:bg-black/5 rounded-md transition-all" onClick={() => handleStatusToggle(item.id, 'daily', item.status)} title="Reset status">
+                          <RotateCcw size={15} />
+                        </button>
+                      )}
+                      <button className="p-1 text-inherit hover:bg-black/5 rounded-md transition-all" onClick={() => handleModify(item.id, 'daily')}>
+                        <Edit size={15} />
+                      </button>
+                      <button className="p-1 text-inherit hover:bg-black/5 rounded-md transition-all text-red-600/80 hover:text-red-600" onClick={() => handleDelete(item.id, 'daily')}>
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={`flex items-center justify-center transition-all duration-500 ease-out z-10 relative overflow-hidden ${
+                    item.status !== 'neutral' ? 'w-0 opacity-0 px-0' : 'w-12 opacity-100 px-3 bg-gray-50 border-l border-gray-100'
+                  }`}>
+                    <button 
+                      onClick={() => handleStatusToggle(item.id, 'daily', 'negative')}
+                      className="w-3.5 h-10 rounded-full bg-red-500/90 hover:bg-red-600 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer"
+                    />
                   </div>
                 </div>
               ))}
             </div>
           </section>
 
-          {/* Habits Column Card */}
-          <section>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-green-900">Habits</h2>
-              <button className="bg-green-600 hover:bg-green-700 text-white font-bold py-1 px-3 rounded flex items-center gap-1 text-sm">
+          {/* Habits Master Showcase Card Box */}
+          <section className="bg-sky-50/60 border border-sky-100 rounded-[32px] p-6 lg:p-8 shadow-sm backdrop-blur-sm">
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-sky-100">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-sky-700 rounded-2xl text-white shadow-md shadow-sky-700/10">
+                  <Sparkles size={22} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-sky-950">Ritucharya Habits</h2>
+                  <p className="text-xs text-sky-700 font-medium mt-0.5">
+                    {habits.filter(h => h.status !== 'neutral').length}/{habits.length} Tracked Today
+                  </p>
+                </div>
+              </div>
+              <button className="bg-sky-700 hover:bg-sky-800 text-white font-semibold py-1.5 px-4 rounded-xl flex items-center gap-1.5 text-sm transition-all shadow-sm shadow-sky-700/10 hover:shadow-md active:scale-95">
                 <Plus size={16} />
-                <span>Create</span>
+                <span>Add Habit</span>
               </button>
             </div>
-            <div className="space-y-3">
+
+            <div className="space-y-4">
               {habits.map(item => (
-                <div key={item.id} className="p-4 bg-white rounded-3xl shadow-sm border border-gray-200 flex justify-between items-center">
-                  <span className="flex-1 text-gray-800 font-medium">{item.name}</span>
-                  <div className="flex gap-2">
-                    <button className="text-green-600 hover:text-green-800" onClick={() => handleModify(item.id, 'habit')}>
-                      <Edit size={16} />
-                    </button>
-                    <button className="text-red-500 hover:text-red-700" onClick={() => handleDelete(item.id, 'habit')}>
-                      <Trash2 size={16} />
-                    </button>
+                <div 
+                  key={item.id} 
+                  className={`rounded-2xl border transition-all duration-300 flex justify-between items-stretch overflow-hidden select-none min-h-[72px] shadow-sm relative bg-white ${
+                    item.status === 'positive' ? 'border-blue-300' : item.status === 'negative' ? 'border-red-300' : 'border-gray-100/80'
+                  }`}
+                >
+                  <div className={`absolute top-0 left-0 h-full bg-blue-50/90 transition-all duration-500 ease-out z-0 pointer-events-none ${item.status === 'positive' ? 'w-full' : 'w-0'}`} />
+                  <div className={`absolute top-0 right-0 h-full bg-red-50/90 transition-all duration-500 ease-out z-0 pointer-events-none ${item.status === 'negative' ? 'w-full' : 'w-0'}`} />
+
+                  <div className={`flex items-center justify-center transition-all duration-500 ease-out z-10 relative overflow-hidden ${
+                    item.status !== 'neutral' ? 'w-0 opacity-0 px-0' : 'w-12 opacity-100 px-3 bg-gray-50 border-r border-gray-100'
+                  }`}>
+                    <button 
+                      onClick={() => handleStatusToggle(item.id, 'habit', 'positive')}
+                      className="w-3.5 h-10 rounded-full bg-blue-500/90 hover:bg-blue-600 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer"
+                    />
+                  </div>
+                  
+                  <div className={`flex-1 px-5 flex items-center justify-between min-w-0 z-10 relative ${getItemTextClasses(item.status)}`}>
+                    <span className="font-semibold text-base tracking-tight truncate pr-4">{item.name}</span>
+                    <div className="flex gap-1.5 flex-shrink-0 bg-black/[0.03] p-1 rounded-xl opacity-40 hover:opacity-100 transition-opacity">
+                      {item.status !== 'neutral' && (
+                        <button className="p-1 text-inherit hover:bg-black/5 rounded-md transition-all" onClick={() => handleStatusToggle(item.id, 'habit', item.status)} title="Reset status">
+                          <RotateCcw size={15} />
+                        </button>
+                      )}
+                      <button className="p-1 text-inherit hover:bg-black/5 rounded-md transition-all" onClick={() => handleModify(item.id, 'habit')}>
+                        <Edit size={15} />
+                      </button>
+                      <button className="p-1 text-inherit hover:bg-black/5 rounded-md transition-all text-red-600/80 hover:text-red-600" onClick={() => handleDelete(item.id, 'habit')}>
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className={`flex items-center justify-center transition-all duration-500 ease-out z-10 relative overflow-hidden ${
+                    item.status !== 'neutral' ? 'w-0 opacity-0 px-0' : 'w-12 opacity-100 px-3 bg-gray-50 border-l border-gray-100'
+                  }`}>
+                    <button 
+                      onClick={() => handleStatusToggle(item.id, 'habit', 'negative')}
+                      className="w-3.5 h-10 rounded-full bg-red-500/90 hover:bg-red-600 hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer"
+                    />
                   </div>
                 </div>
               ))}
@@ -313,24 +463,19 @@ export default function HabitsPage() {
           </section>
         </div>
 
-        {/* Calendar Matrix Board Component with Exact Matching Track Headers */}
+        {/* Heatmap Grid Row View */}
         <section className="mb-12 p-6 bg-white rounded-3xl shadow-sm border border-gray-200 w-full">
-          <h2 className="text-xl font-semibold text-green-900 mb-6">Yearly Compliance Calendar</h2>
+          <h2 className="text-xl font-bold text-green-950 mb-6">Yearly Compliance Calendar</h2>
           
           <div className="w-full flex flex-col">
             <div className="flex items-start gap-4 w-full relative">
-              
-              {/* Left Row labels padding */}
               <div className="grid grid-rows-7 h-[84px] text-[10px] text-gray-400 select-none font-medium pr-1 gap-[3px] mt-7">
                 <span className="row-start-2 flex items-center">Mon</span>
                 <span className="row-start-4 flex items-center">Wed</span>
                 <span className="row-start-6 flex items-center">Fri</span>
               </div>
 
-              {/* Grid content and Month labels matching layout blocks */}
               <div className="flex-1 min-w-0">
-                
-                {/* Fixed Column Grid for Header Month layout labels */}
                 <div 
                   className="w-full grid grid-flow-col text-xs font-medium text-gray-400 select-none pb-2"
                   style={{ gridTemplateColumns: 'repeat(53, minmax(0, 1fr))' }}
@@ -349,37 +494,32 @@ export default function HabitsPage() {
                   <span className="col-span-5 text-left">Dec</span>
                 </div>
 
-                {/* Grid Elements Map Box */}
                 <div className="relative">
                   <div 
                     ref={heatmapGridRef}
                     className="w-full grid grid-rows-7 grid-flow-col gap-[3px]"
                     style={{ gridTemplateColumns: 'repeat(53, minmax(0, 1fr))' }}
                   ></div>
-                  
-                  {/* Tooltip Hover Module */}
                   <div ref={tooltipRef} id="tooltip" className="hidden absolute transition-opacity duration-150"></div>
                 </div>
-
               </div>
             </div>
           </div>
 
-          {/* Color scale footer indexes */}
           <div className="mt-5 flex items-center justify-end gap-2 text-xs text-gray-400 pr-1">
             <span>Less</span>
             <div className="w-[10px] h-[10px] rounded-[2px] bg-gray-100 border border-gray-200"></div>
             <div className="w-[10px] h-[10px] rounded-[2px] bg-green-100"></div>
             <div className="w-[10px] h-[10px] rounded-[2px] bg-green-300"></div>
             <div className="w-[10px] h-[10px] rounded-[2px] bg-green-400"></div>
-            <div className="w-[10px] h-[10px] rounded-[2px] bg-green-600"></div>
+            <div className="w-[10px] h-[10px] rounded-[2px] bg-[#15803d]"></div>
             <span>More</span>
           </div>
         </section>
 
-        {/* Analytics Display Panel Wrapper */}
+        {/* Analytics Section Row Layouts */}
         <section className="mb-12">
-          <h2 className="text-xl font-semibold text-green-900 mb-6">Analytics</h2>
+          <h2 className="text-xl font-bold text-green-950 mb-6">Analytics Insights</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-6 bg-white rounded-3xl shadow-sm border border-gray-200">
               <h3 className="text-md font-semibold text-gray-700 mb-4">Compliance Trend (Last 12 Months)</h3>

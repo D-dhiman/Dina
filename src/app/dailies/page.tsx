@@ -2,10 +2,9 @@
 
 import { useState } from 'react';
 import Navbar from "../components/navbar";
-import { Plus, Flame, Sparkles } from 'lucide-react';
+import { Plus, Flame, Sparkles, Target, Zap } from 'lucide-react';
 
 export default function DailiesPage() {
-  // Form input control states matching your updated blueprint
   const [habitName, setHabitName] = useState("");
   const [category, setCategory] = useState<string>("exercise");
   const [prescribedTime, setPrescribedTime] = useState("08:00"); 
@@ -13,22 +12,21 @@ export default function DailiesPage() {
   const [frequency, setFrequency] = useState<"daily" | "weekly" | "monthly">("daily");
 
   const categoriesList = [
-    { id: 'exercise', label: 'Exercise' },
-    { id: 'meal', label: 'Meal' },
-    { id: 'sleep', label: 'Sleep' },
-    { id: 'work', label: 'Work/Prod' },
-    { id: 'mindset', label: 'Mindset' },
-    { id: 'learning', label: 'Learning' },
-    { id: 'health', label: 'Health' },
-    { id: 'finance', label: 'Finance' },
-    { id: 'social', label: 'Social' }
+    { id: 'exercise', label: 'Exercise', desc: 'Workouts & movement' },
+    { id: 'meal', label: 'Meal', desc: 'Diet & nutrition' },
+    { id: 'sleep', label: 'Sleep', desc: 'Rest & recovery' },
+    { id: 'work', label: 'Work/Prod', desc: 'Tasks & focus' },
+    { id: 'mindset', label: 'Mindset', desc: 'Meditation & clarity' },
+    { id: 'learning', label: 'Learning', desc: 'Skills & reading' },
+    { id: 'health', label: 'Health', desc: 'Hygiene & vitals' },
+    { id: 'finance', label: 'Finance', desc: 'Budget & savings' },
+    { id: 'social', label: 'Social', desc: 'Family & networking' }
   ];
 
   const handleCreateDaily = (e: React.FormEvent) => {
     e.preventDefault();
     if (!habitName.trim()) return;
 
-    // Ready to be linked directly with your DB insert row execution logic
     console.log({
       id: crypto.randomUUID(),
       habitName,
@@ -41,7 +39,6 @@ export default function DailiesPage() {
       createdAt: new Date().toISOString()
     });
 
-    // Reset fields
     setHabitName("");
     setPrescribedTime("08:00");
     setLastTimeToDo("21:00");
@@ -50,115 +47,127 @@ export default function DailiesPage() {
   const getSelectedCategoryStyles = (cat: string) => {
     switch (cat) {
       case 'meal':
-        return 'bg-[#006944] border-[#006944] text-white shadow-md ring-4 ring-[#006944]/10 scale-[1.01]';
+        return 'bg-[#006944] border-[#006944] text-white shadow-lg shadow-[#006944]/20 ring-4 ring-[#006944]/10 scale-[1.02]';
       case 'exercise':
-        return 'bg-emerald-700 border-emerald-700 text-white shadow-md ring-4 ring-emerald-700/10 scale-[1.01]';
+        return 'bg-emerald-700 border-emerald-700 text-white shadow-lg shadow-emerald-700/20 ring-4 ring-emerald-700/10 scale-[1.02]';
       case 'sleep':
-        return 'bg-indigo-700 border-indigo-700 text-white shadow-md ring-4 ring-indigo-700/10 scale-[1.01]';
+        return 'bg-indigo-700 border-indigo-700 text-white shadow-lg shadow-indigo-700/20 ring-4 ring-indigo-700/10 scale-[1.02]';
       case 'work':
-        return 'bg-blue-700 border-blue-700 text-white shadow-md ring-4 ring-blue-700/10 scale-[1.01]';
+        return 'bg-blue-700 border-blue-700 text-white shadow-lg shadow-blue-700/20 ring-4 ring-blue-700/10 scale-[1.02]';
       case 'mindset':
-        return 'bg-amber-600 border-amber-600 text-white shadow-md ring-4 ring-amber-600/10 scale-[1.01]';
+        return 'bg-amber-600 border-amber-600 text-white shadow-lg shadow-amber-600/20 ring-4 ring-amber-600/10 scale-[1.02]';
       case 'learning':
-        return 'bg-cyan-700 border-cyan-700 text-white shadow-md ring-4 ring-cyan-700/10 scale-[1.01]';
+        return 'bg-cyan-700 border-cyan-700 text-white shadow-lg shadow-cyan-700/20 ring-4 ring-cyan-700/10 scale-[1.02]';
       case 'health':
-        return 'bg-rose-700 border-rose-700 text-white shadow-md ring-4 ring-rose-700/10 scale-[1.01]';
+        return 'bg-rose-700 border-rose-700 text-white shadow-lg shadow-rose-700/20 ring-4 ring-rose-700/10 scale-[1.02]';
       case 'finance':
-        return 'bg-purple-700 border-purple-700 text-white shadow-md ring-4 ring-purple-700/10 scale-[1.01]';
+        return 'bg-purple-700 border-purple-700 text-white shadow-lg shadow-purple-700/20 ring-4 ring-purple-700/10 scale-[1.02]';
       case 'social':
-        return 'bg-orange-600 border-orange-600 text-white shadow-md ring-4 ring-orange-600/10 scale-[1.01]';
+        return 'bg-orange-600 border-orange-600 text-white shadow-lg shadow-orange-600/20 ring-4 ring-orange-600/10 scale-[1.02]';
       default:
-        return 'bg-gray-800 border-gray-800 text-white shadow-md scale-[1.01]';
+        return 'bg-gray-800 border-gray-800 text-white shadow-md scale-[1.02]';
     }
   };
 
   return (
-    <div className="w-full min-h-screen bg-[#fcfdfa] pb-20 selection:bg-emerald-100 selection:text-emerald-900">
+    // Deepest background page switched to a premium warm cream layout palette
+    <div className="w-full min-h-screen bg-[#f9f8f3] pb-24 selection:bg-emerald-100 selection:text-emerald-900">
       <Navbar />
 
-      <main className="w-full py-10 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
+      <main className="w-full py-12 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
         
         {/* Header Banner Component Block */}
-        <header className="flex items-center justify-between mb-10 border-b border-gray-100 pb-6 transition-all duration-300">
+        <header className="flex items-center justify-between mb-12 border-b border-gray-200/60 pb-8 transition-all duration-300">
           <div>
-            <h1 className="text-3xl font-bold text-[#1e3a1e] tracking-tight flex items-center gap-2">
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-[#112a11] tracking-tight flex items-center gap-2">
               Good morning <span className="inline-block animate-bounce [animation-duration:3s]">👋</span>
             </h1>
-            <p className="text-sm text-[#8a9485] font-medium mt-1">
-              Configure and build your lifestyle routine rulesets
+            <p className="text-sm sm:text-base text-[#707a6c] font-medium mt-1.5">
+              Architect and customize your luxury routine presets
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1 bg-[#fffbeb] border border-[#fef3c7] px-3 py-1.5 rounded-full shadow-sm hover:scale-105 transition-transform">
+            <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-4 py-2 rounded-full shadow-sm hover:scale-105 transition-transform duration-300">
               <Flame size={18} className="text-amber-500 fill-amber-500" />
-              <span className="text-sm font-bold text-amber-800">7</span>
+              <span className="text-sm font-black text-amber-800">7</span>
             </div>
-            <div className="w-10 h-10 rounded-full bg-[#062e14] flex items-center justify-center text-white font-semibold text-sm shadow-inner cursor-pointer select-none">
+            <div className="w-11 h-11 rounded-full bg-[#052510] flex items-center justify-center text-white font-bold text-sm shadow-md cursor-pointer select-none ring-4 ring-[#052510]/10">
               U
             </div>
           </div>
         </header>
 
-        {/* Full Width Workspace Form Structure */}
-        <div className="w-full bg-white border border-gray-200/80 rounded-[32px] p-6 sm:p-10 shadow-xs hover:shadow-md transition-shadow duration-300">
-          <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-100">
-            <h2 className="text-xl font-bold text-[#1e3a1e] flex items-center gap-2.5">
-              <Sparkles size={22} className="text-emerald-600" />
+        {/* Elevated Workspace Form Card */}
+        <div className="w-full bg-white border border-gray-200/70 rounded-[36px] p-8 sm:p-12 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="flex items-center justify-between mb-10 pb-5 border-b border-gray-100">
+            <h2 className="text-2xl font-black text-[#112a11] flex items-center gap-3">
+              <Sparkles size={24} className="text-emerald-600 animate-pulse" />
               Create Habit
             </h2>
-            <span className="text-xs font-semibold text-gray-400 tracking-tight">
-              All metrics configure standard DB row presets
+            <span className="hidden sm:inline-block text-xs font-bold text-emerald-700/80 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 uppercase tracking-widest">
+              Standard Matrix Input
             </span>
           </div>
 
-          <form onSubmit={handleCreateDaily} className="space-y-8">
-            {/* Task Title */}
-            <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2.5">Task Title</label>
+          <form onSubmit={handleCreateDaily} className="space-y-10">
+            
+            {/* Task Title Input */}
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest">
+                <Target size={14} className="text-gray-400" />
+                Task Title
+              </label>
               <input
                 type="text"
                 required
-                placeholder="Enter dynamic routine headline..."
+                placeholder="What lifestyle design choice are we implementing today?"
                 value={habitName}
                 onChange={(e) => setHabitName(e.target.value)}
-                className="w-full text-base bg-[#fcfdfa] border border-gray-200 rounded-2xl px-5 py-4 text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-600/10 focus:border-emerald-600 font-medium transition-all duration-200"
+                className="w-full text-base sm:text-lg bg-[#faf9f5] border border-gray-200/80 rounded-2xl px-6 py-4.5 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-4 focus:ring-emerald-600/5 focus:border-emerald-600 font-medium transition-all duration-200"
               />
             </div>
 
-            {/* Expanded Wide Perspective Category Selection */}
-            <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Category Selection</label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {/* Luxurious Expanded Category Boxes Selection Grid */}
+            <div className="space-y-3.5">
+              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest">Category Selection</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {categoriesList.map((cat) => (
                   <button
                     key={cat.id}
                     type="button"
                     onClick={() => setCategory(cat.id)}
-                    className={`py-4 px-3 text-xs font-black uppercase tracking-wider rounded-xl border transition-all duration-200 text-center select-none ${
+                    className={`group text-left p-5 sm:p-6 rounded-2xl border transition-all duration-300 select-none flex flex-col gap-1.5 ${
                       category === cat.id
                         ? getSelectedCategoryStyles(cat.id)
-                        : 'bg-white border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50/80 active:scale-[0.99]'
+                        : 'bg-white border-gray-200 hover:border-gray-300 text-gray-700 hover:bg-[#faf9f5] hover:-translate-y-0.5 active:translate-y-0 shadow-2xs'
                     }`}
                   >
-                    {cat.label}
+                    <span className="text-sm font-extrabold tracking-wide uppercase">
+                      {cat.label}
+                    </span>
+                    <span className={`text-xs transition-colors line-clamp-1 ${
+                      category === cat.id ? 'text-white/80 font-medium' : 'text-gray-400 group-hover:text-gray-500'
+                    }`}>
+                      {cat.desc}
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Frequency Selector Module */}
-            <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Frequency</label>
-              <div className="grid grid-cols-3 gap-3">
+            {/* High-Padding Frequency Selector Module */}
+            <div className="space-y-3.5">
+              <label className="block text-xs font-black text-gray-400 uppercase tracking-widest">Frequency</label>
+              <div className="grid grid-cols-3 gap-4">
                 {(['daily', 'weekly', 'monthly'] as const).map((freq) => (
                   <button
                     key={freq}
                     type="button"
                     onClick={() => setFrequency(freq)}
-                    className={`py-3.5 px-4 text-xs font-bold rounded-xl transition-all duration-200 border ${
+                    className={`py-4 sm:py-5 px-4 text-sm font-extrabold rounded-2xl transition-all duration-200 border text-center ${
                       frequency === freq
-                        ? 'bg-[#5c6bc0] border-[#5c6bc0] text-white shadow-md scale-[1.01]'
-                        : 'bg-gray-50/50 border-gray-200 text-gray-600 hover:bg-gray-100 active:scale-[0.99]'
+                        ? 'bg-[#4a5ab5] border-[#4a5ab5] text-white shadow-lg shadow-indigo-600/10 scale-[1.01]'
+                        : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-[#faf9f5] active:scale-[0.99] shadow-2xs'
                     }`}
                   >
                     {freq.charAt(0).toUpperCase() + freq.slice(1)}
@@ -167,35 +176,35 @@ export default function DailiesPage() {
               </div>
             </div>
 
-            {/* Time Configuration Inputs */}
+            {/* High-Padding Time Configuration Inputs */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-2">
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Scheduled Time</label>
+              <div className="space-y-3">
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest">Scheduled Target Time</label>
                 <input
                   type="time"
                   value={prescribedTime}
                   onChange={(e) => setPrescribedTime(e.target.value)}
-                  className="w-full text-sm bg-[#fcfdfa] border border-gray-200 rounded-xl p-3.5 font-medium text-gray-700 focus:outline-none focus:border-emerald-600 transition-colors"
+                  className="w-full text-base bg-[#faf9f5] border border-gray-200/80 rounded-2xl p-4 font-bold text-gray-700 focus:outline-none focus:border-emerald-600 transition-colors shadow-2xs"
                 />
               </div>
-              <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Latest Cutoff Time</label>
+              <div className="space-y-3">
+                <label className="block text-xs font-black text-gray-400 uppercase tracking-widest">Latest Action Cutoff</label>
                 <input
                   type="time"
                   value={lastTimeToDo}
                   onChange={(e) => setLastTimeToDo(e.target.value)}
-                  className="w-full text-sm bg-[#fcfdfa] border border-gray-200 rounded-xl p-3.5 font-medium text-gray-700 focus:outline-none focus:border-emerald-600 transition-colors"
+                  className="w-full text-base bg-[#faf9f5] border border-gray-200/80 rounded-2xl p-4 font-bold text-gray-700 focus:outline-none focus:border-emerald-600 transition-colors shadow-2xs"
                 />
               </div>
             </div>
 
-            {/* Form Submit Row Action */}
-            <div className="pt-4">
+            {/* Visual Action Button Container */}
+            <div className="pt-6">
               <button
                 type="submit"
-                className="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-4 px-6 rounded-2xl text-base flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg active:scale-[0.99]"
+                className="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold py-5 px-6 rounded-2xl text-base flex items-center justify-center gap-2.5 transition-all shadow-md hover:shadow-xl hover:shadow-emerald-900/10 active:scale-[0.99]"
               >
-                <Plus size={20} />
+                <Plus size={22} strokeWidth={2.5} />
                 <span>Create Habit Row</span>
               </button>
             </div>

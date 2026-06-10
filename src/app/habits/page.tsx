@@ -410,7 +410,7 @@ export default function HabitsPage() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Link href="/habit2">
+                <Link href="/habitadd">
                   <button className="bg-sky-700 hover:bg-sky-800 text-white font-semibold py-1.5 px-4 rounded-xl flex items-center gap-1.5 text-sm transition-all shadow-sm shadow-sky-700/10 hover:shadow-md active:scale-95">
                     <Plus size={16} />
                     <span>Add Habit</span>
@@ -418,6 +418,7 @@ export default function HabitsPage() {
                 </Link>
               </div>
             </div>
+
 
             <div className="space-y-4">
               {habits.map(item => (

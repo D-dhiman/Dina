@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Navbar from "../components/navbar";
 import JournalLog from "../components/journalLog";
-import Link from "next/link";
+import {Flame } from 'lucide-react';
 import {
   Chart,
   CategoryScale,
@@ -36,13 +36,19 @@ const sections = [
     title: "Habits",
     description: "Build and maintain your daily habits",
     pill: "3 / 5 done",
-    color: "bg-violet-50 text-violet-700",
+    color: "bg-[#FFFFFF] text-black-700",
+    bgColor: "#8fa96b",
+    borderColor: "transparent",
+    shape:"triangle",
   },
   {
     title: "Dailies",
     description: "Your recurring daily tasks and check-ins",
     pill: "2 pending",
-    color: "bg-amber-50 text-amber-700",
+    color: "bg-[#FFFFFF] text-black-700",
+    bgColor: "#8fa8c8",
+    borderColor: "transparent",
+    shape:"star",
   },
 ];
 
@@ -100,11 +106,18 @@ function WeeklyPlanner() {
   const [selectedDay, setSelectedDay] = useState("Tue");
 
   return (
-    <div className="mt-8 w-full rounded-3xl bg-slate-900 p-6 text-white">
+    <div className="mt-8 w-full rounded-3xl p-6 text-white relative overflow-hidden"
+      style={{
+        backgroundImage: "url('/weeklyplanerbg.png')",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}>
+        {/* Dark overlay over img */}
+      <div className="absolute inset-0 bg-black/10 rounded-3xl z-0" /> 
       <div className="flex items-center justify-between gap-4 pb-4">
         <div>
-          <p className="text-sm text-slate-300">Weekly planner</p>
-          <p className="text-lg font-semibold text-white">Your health agenda</p>
+          <p className="text-md text-slate-300">Weekly planner</p>
+          <p className="text-xl font-semibold text-white">Your health agenda</p>
         </div>
       </div>
 
@@ -115,17 +128,19 @@ function WeeklyPlanner() {
             <button
               key={day.label}
               onClick={() => setSelectedDay(day.label)}
-              className={`relative flex-shrink-0 rounded-3xl p-4 h-48 text-left transition-all duration-300 ease-out ${
-                isSelected
-                  ? "flex-[1.4] bg-emerald-500 shadow-2xl"
-                  : "flex-1 min-w-[88px] bg-slate-800"
-              }`}
+              style={{
+                backgroundColor: isSelected ? 'rgba(0, 0, 0, 0.48)' : 'rgba(0, 0, 0, 0.42)',
+                backdropFilter: 'blur(6px)',
+                WebkitBackdropFilter: 'blur(6px)',
+                border: '1px solid rgba(255,255,255,0.06)',
+              }}
+              className={`relative flex-shrink-0 rounded-3xl p-4 h-48 text-left transition-all duration-300 ease-out ${isSelected ? 'flex-[1.4] shadow-2xl' : 'flex-1 min-w-[88px]'}`}
             >
               <div className="flex items-start justify-between gap-3">
-                <span className="text-xs uppercase tracking-[0.18em] text-slate-300">
+                <span className="text-xs uppercase tracking-[0.18em] text-white/90">
                   {day.label}
                 </span>
-                <span className={`rounded-2xl px-2 py-1 text-sm font-semibold ${isSelected ? "bg-white/20 text-white" : "bg-slate-700 text-slate-200"}`}>
+                <span className={`rounded-2xl px-2 py-1 text-sm font-semibold ${isSelected ? 'bg-white/20 text-white' : 'bg-white/10 text-white/90'}`}>
                   {day.day}
                 </span>
               </div>
@@ -136,7 +151,7 @@ function WeeklyPlanner() {
                     <span key={event.label} className={`h-2.5 w-2.5 rounded-full ${event.color}`} />
                   ))
                 ) : (
-                  <span className="text-[11px] text-slate-400">No plans</span>
+                  <span className="text-[11px] text-white/70">No plans</span>
                 )}
               </div>
 
@@ -247,51 +262,77 @@ export default function DashboardPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#f8f9f5] pb-20">
+    <div className="min-h-screen px-4 sm:px-6 lg:px-8 bg-[#f8f9f5] pb-20">
       <main className="w-full min-h-screen py-10 px-4 sm:px-6 lg:px-8">
-        <div className="w-full p-6 ">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <header className="flex items-center justify-between mb-12 border-b border-gray-100 pb-6">
+          <div className="flex items-center gap-3">
             <div>
-              <h1 className="text-2xl sm:text-2xl font-bold text-[#284C24] mb-2">
-                Good morning 👋
+              <h1 className="text-3xl font-bold text-[#1e3a1e] tracking-tight flex items-center gap-2">
+                Good morning 
               </h1>
-              <p className="text-sm sm:text-sm text-[#855A1D]/80">
+              <p className="text-sm text-[#8a9485] font-medium mt-1">
                 Here's your overview for today
               </p>
             </div>
-
-            <div className="flex items-center justify-between gap-3 lg:justify-end">
-              <div className="px-3 py-2 text-md font-medium text-amber-700 flex items-center gap-1">
-                <span className="text-xl">🔥</span>
-                <span>7</span>
-              </div>
-              <div className="rounded-full bg-[var(--dina-green)] w-11 h-11 flex items-center justify-center text-white font-semibold text-md">
-                U
-              </div>
+            <span className="inline-block animate-wave [animation-duration:2s] text-4xl pb-2">👋</span>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            {/* Streak Counter */}
+            <div className="flex items-center gap-1 bg-[#fffbeb] border border-[#fef3c7] px-3 py-1.5 rounded-full shadow-sm">
+              <Flame size={18} className="text-amber-500 fill-amber-500" />
+              <span className="text-sm font-bold text-amber-800">7</span>
+            </div>
+            
+            {/* User Profile Circle Avatar */}
+            <div className="w-10 h-10 rounded-full bg-[#062e14] border border-[#14532d] flex items-center justify-center text-white font-semibold text-sm shadow-inner cursor-pointer select-none">
+              U
             </div>
           </div>
-        </div>
+        </header>
 
         <WeeklyPlanner />
 
-        <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+        <div className="mt-8 flex flex-col items-left justify-center gap-4 sm:flex-row">
           {sections.map((s) => (
-            <div key={s.title} className="w-full sm:w-1/2">
-              {s.title === "Habits" ? (
-                <Link href="/habits" className="block hover:no-underline">
-                  <div className="bg-white border border-gray-200 rounded-3xl p-6 text-center cursor-pointer hover:shadow-md transition-shadow">
-                    <h2 className="font-semibold text-gray-900 text-lg mb-2">{s.title}</h2>
-                    <p className="text-sm text-gray-500 mb-4">{s.description}</p>
-                    <span className={`text-xs px-3 py-2 rounded-full ${s.color}`}>{s.pill}</span>
-                  </div>
-                </Link>
-              ) : (
-                <div className="bg-white border border-gray-200 rounded-3xl p-6 text-center cursor-pointer hover:shadow-md transition-shadow">
-                  <h2 className="font-semibold text-gray-900 text-lg mb-2">{s.title}</h2>
-                  <p className="text-sm text-gray-500 mb-4">{s.description}</p>
-                  <span className={`text-xs px-3 py-2 rounded-full ${s.color}`}>{s.pill}</span>
-                </div>
+            <div
+              key={s.title}
+              style={{
+                backgroundColor: s.bgColor,
+                borderColor: s.borderColor,
+              }}
+              className="w-full sm:w-1/2 border-1 rounded-3xl p-6 text-left relative overflow-hidden"
+            >
+              {s.shape === "triangle" && (
+                <div
+                  className="absolute -bottom-14 right-[-6px] w-40 h-40 opacity-40 rotate-[-15deg] "
+                  style={{
+                    width: 0,
+                    height: 0,
+                    borderLeft: "90px solid transparent",
+                    borderRight: "90px solid transparent",
+                    borderTop: "150px solid rgba(0,0,0,0.25)",
+                  }}
+                />
               )}
+              {s.shape === "star" && (
+                <svg
+                  className="absolute -top-12 -right-[.5px] opacity-30 rotate-25"
+                  width="170" height="170" viewBox="0 0 100 100"
+                >
+                  <polygon
+                    points="50,0 61,35 95,25 75,52 98,70 65,68 68,98 50,78 32,98 35,68 2,70 25,52 5,25 39,35"
+                    fill="rgba(0, 0, 0, 0.37)"
+                  />
+                </svg>
+              )}
+              <h2 className="font-semibold text-gray-900 text-lg mb-2">
+                {s.title}
+              </h2>
+              <p className="text-sm text-gray-700 mb-4">{s.description}</p>
+              <span className={`text-xs px-3 py-2 border border-gray-300 rounded-full ${s.color}`}>
+                {s.pill}
+              </span>
             </div>
           ))}
         </div>

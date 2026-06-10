@@ -193,7 +193,7 @@ export default function DailiesPage() {
                 className="w-full bg-emerald-800 hover:bg-emerald-900 text-white font-extrabold py-5 px-6 rounded-2xl text-base flex items-center justify-center gap-2.5 transition-all shadow-md hover:shadow-xl hover:shadow-emerald-900/10 active:scale-[0.99]"
               >
                 <Plus size={22} strokeWidth={2.5} />
-                <span>Create Habit Row</span>
+                <span>Create Daily Row</span>
               </button>
             </div>
           </form>

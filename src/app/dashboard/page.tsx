@@ -317,8 +317,8 @@ export default function DashboardPage() {
               )}
               {s.shape === "star" && (
                 <svg
-                  className="absolute -top-12 -right-[.5px] opacity-30 rotate-25"
-                  width="170" height="170" viewBox="0 0 100 100"
+                  className="absolute -top-13 -right-[.5px] opacity-30 rotate-25"
+                  width="190" height="190" viewBox="0 0 100 100"
                 >
                   <polygon
                     points="50,0 61,35 95,25 75,52 98,70 65,68 68,98 50,78 32,98 35,68 2,70 25,52 5,25 39,35"

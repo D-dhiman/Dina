@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Navbar from "../components/navbar";
 import JournalLog from "../components/journalLog";
-import {Flame } from 'lucide-react';
+import {Flame, ChevronDown} from 'lucide-react';
+import { useRouter } from "next/navigation";
+
 import {
   Chart,
   CategoryScale,
@@ -30,6 +32,7 @@ Chart.register(
   Legend,
   Filler,
 );
+
 
 const sections = [
   {
@@ -176,6 +179,8 @@ function WeeklyPlanner() {
 export default function DashboardPage() {
   const habitContinuityChartRef = useRef<HTMLCanvasElement>(null);
   const healthOverviewChartRef = useRef<HTMLCanvasElement>(null);
+  const [isJournalOpen, setIsJournalOpen] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     const habitChartCanvas = habitContinuityChartRef.current;
@@ -293,7 +298,7 @@ export default function DashboardPage() {
 
         <WeeklyPlanner />
 
-        <div className="mt-8 flex flex-col items-left justify-center gap-4 sm:flex-row">
+        <div onClick={() => router.push("/habits")} className="mt-8 flex flex-col items-left justify-center gap-4 sm:flex-row cursor-pointer">
           {sections.map((s) => (
             <div
               key={s.title}
@@ -315,17 +320,24 @@ export default function DashboardPage() {
                   }}
                 />
               )}
-              {s.shape === "star" && (
-                <svg
-                  className="absolute -top-13 -right-[.5px] opacity-30 rotate-25"
-                  width="190" height="190" viewBox="0 0 100 100"
-                >
-                  <polygon
-                    points="50,0 61,35 95,25 75,52 98,70 65,68 68,98 50,78 32,98 35,68 2,70 25,52 5,25 39,35"
-                    fill="rgba(0, 0, 0, 0.37)"
-                  />
-                </svg>
-              )}
+              {s.shape === "star" && (() => {
+                const cx = 50, cy = 50, points = 10;
+                const angle = Math.PI / points;
+                const pts = Array.from({ length: points * 2 }, (_, i) => {
+                  const r = i % 2 === 0 ? 50 : 28;  // outer=50, inner=28 (higher = more filled)
+                  const a = i * angle - Math.PI / 2;
+                  return `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`;
+                }).join(" ");
+
+                return (
+                  <svg
+                    className="absolute -bottom-[-12px] -right-7 opacity-30 rotate-45"
+                    width="180" height="180" viewBox="0 0 100 100"
+                  >
+                    <polygon points={pts} fill=" rgba(0, 0, 0, 0.42)" />
+                  </svg>
+                );
+              })()}
               <h2 className="font-semibold text-gray-900 text-lg mb-2">
                 {s.title}
               </h2>
@@ -337,9 +349,41 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        <div className ="mt-8 w-full rounded-3xl bg-[#80C963] p-3 text-white">
-          <JournalLog />
+        <div className="mt-4 w-full rounded-3xl relative overflow-hidden scroll-vertical noise-bg"
+        style={{ background: "linear-gradient(135deg, #39210b 0%, #5c2c07 30%, #8e450d 100%)" }}
+      >
+        {/* visible container*/}
+        <div
+          className="p-6 flex items-center justify-between group cursor-pointer"
+          onClick={() => setIsJournalOpen(!isJournalOpen)}
+        >
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+            style={{
+              background: "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.08) 50%, transparent 60%)",
+              backgroundSize: "200% 100%",
+              animation: "sheen 0.6s ease forwards",
+            }}
+          />
+          <div>
+            <p className="text-xs uppercase tracking-[0.2em] text-white/70 mb-1">Daily check-in</p>
+            <h2 className="text-lg font-semibold text-white">Log today's activity</h2>
+            <p className="text-sm text-white/80 mt-1">How were your activities today?</p>
+          </div>
+          <ChevronDown
+            size={40}
+            className={`text-white transition-transform duration-300 flex-shrink-0 ${isJournalOpen ? 'rotate-180' : ''}`}
+          />
         </div>
+
+        {/* Collapsible journal */}
+        <div className={`overflow-hidden transition-all duration-200 ease-in-out ${
+          isJournalOpen ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0'
+        }`}>
+          <div className="px-3 pb-3">
+            <JournalLog />
+          </div>
+        </div>
+      </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <section className="rounded-3xl bg-white p-6 shadow-sm border border-gray-200">

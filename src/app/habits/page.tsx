@@ -124,13 +124,17 @@ export default function HabitsPage() {
 
           let bgClass = 'bg-gray-100 dark:bg-gray-800';
           if (data.compliance >= 75) {
-            bgClass = 'bg-[#15803d]';
+            bgClass = 'bg-[#86CA1A]';
           } else if (data.compliance >= 50) {
-            bgClass = 'bg-green-400';
+            bgClass = 'bg-[#C9D43A]';
           } else if (data.compliance >= 25) {
-            bgClass = 'bg-green-300';
+            bgClass = 'bg-[#FFCC24]';
+          } else if (data.compliance >= 10) {
+            bgClass = 'bg-[#F49521]';
           } else if (data.compliance > 0) {
-            bgClass = 'bg-green-100';
+            bgClass = 'bg-[#EE6125]';
+          } else{
+            bgClass = 'bg-[#D01E18]';
           }
           cell.className += ` ${bgClass}`;
 
@@ -284,8 +288,8 @@ export default function HabitsPage() {
   }, []);
 
   const getItemTextClasses = (status: 'neutral' | 'positive' | 'negative') => {
-    if (status === 'positive') return 'text-blue-950 transition-colors duration-300';
-    if (status === 'negative') return 'text-red-950 transition-colors duration-300';
+    if (status === 'positive') return 'text-blue-900 transition-colors duration-300';
+    if (status === 'negative') return 'text-red-900 transition-colors duration-300';
     return 'text-gray-800 transition-colors duration-300';
   };
 
@@ -324,21 +328,21 @@ export default function HabitsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           
           {/* Dailies Master Showcase Card Box */}
-          <section className="bg-emerald-50/60 border border-emerald-100 rounded-[32px] p-6 lg:p-8 shadow-sm backdrop-blur-sm">
-            <div className="flex justify-between items-center mb-6 pb-4 border-b border-emerald-100">
+          <section className="bg-sky-50/60 border border-sky-100 rounded-[32px] p-6 lg:p-8 shadow-sm backdrop-blur-sm">
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-sky-100">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-700 rounded-2xl text-white shadow-md shadow-emerald-700/10">
+                <div className="p-2.5 bg-sky-700 rounded-2xl text-white shadow-md shadow-sky-700/10">
                   <CalendarDays size={22} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-emerald-950">Dailies</h2>
-                  <p className="text-xs text-emerald-700 font-medium mt-0.5">
+                  <h2 className="text-xl font-bold text-sky-950">Dailies</h2>
+                  <p className="text-xs text-sky-700 font-medium mt-0.5">
                     {dailies.filter(d => d.status !== 'neutral').length}/{dailies.length} Completed
                   </p>
                 </div>
               </div>
               <Link href="/dailies">
-                <button className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-1.5 px-4 rounded-xl flex items-center gap-1.5 text-sm transition-all shadow-sm shadow-emerald-700/10 hover:shadow-md active:scale-95">
+                <button className="bg-sky-700 hover:bg-sky-800 text-white font-semibold py-1.5 px-4 rounded-xl flex items-center gap-1.5 text-sm transition-all shadow-sm shadow-sky-700/10 hover:shadow-md active:scale-95">
                   <Plus size={16} />
                   <span>Add Daily</span>
                 </button>
@@ -353,8 +357,8 @@ export default function HabitsPage() {
                     item.status === 'positive' ? 'border-blue-300' : item.status === 'negative' ? 'border-red-300' : 'border-gray-100/80'
                   }`}
                 >
-                  <div className={`absolute top-0 left-0 h-full bg-blue-50/90 transition-all duration-500 ease-out z-0 pointer-events-none ${item.status === 'positive' ? 'w-full' : 'w-0'}`} />
-                  <div className={`absolute top-0 right-0 h-full bg-red-50/90 transition-all duration-500 ease-out z-0 pointer-events-none ${item.status === 'negative' ? 'w-full' : 'w-0'}`} />
+                  <div className={`absolute top-0 left-0 h-full bg-blue-100/95 transition-all duration-500 ease-out z-0 pointer-events-none ${item.status === 'positive' ? 'w-full' : 'w-0'}`} />
+                  <div className={`absolute top-0 right-0 h-full bg-red-100/95 transition-all duration-500 ease-out z-0 pointer-events-none ${item.status === 'negative' ? 'w-full' : 'w-0'}`} />
 
                   <div className={`flex items-center justify-center transition-all duration-500 ease-out z-10 relative overflow-hidden ${
                     item.status !== 'neutral' ? 'w-0 opacity-0 px-0' : 'w-12 opacity-100 px-3 bg-gray-50 border-r border-gray-100'
@@ -396,22 +400,22 @@ export default function HabitsPage() {
           </section>
 
           {/* Habits Master Showcase Card Box */}
-          <section className="bg-sky-50/60 border border-sky-100 rounded-[32px] p-6 lg:p-8 shadow-sm backdrop-blur-sm">
+          <section className="bg-emerald-50/60 border border-sky-100 rounded-[32px] p-6 lg:p-8 shadow-sm backdrop-blur-sm">
             <div className="flex justify-between items-center mb-6 pb-4 border-b border-sky-100">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-sky-700 rounded-2xl text-white shadow-md shadow-sky-700/10">
+                <div className="p-2.5 bg-emerald-700 rounded-2xl text-white shadow-md shadow-emerald-700/10">
                   <Sparkles size={22} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-sky-950">Habits</h2>
-                  <p className="text-xs text-sky-700 font-medium mt-0.5">
+                  <h2 className="text-xl font-bold text-emerald-950">Habits</h2>
+                  <p className="text-xs text-emerald-700 font-medium mt-0.5">
                     {habits.filter(h => h.status !== 'neutral').length}/{habits.length} Tracked Today
                   </p>
                 </div>
               </div>
               <div className="flex gap-2">
                 <Link href="/habitadd">
-                  <button className="bg-sky-700 hover:bg-sky-800 text-white font-semibold py-1.5 px-4 rounded-xl flex items-center gap-1.5 text-sm transition-all shadow-sm shadow-sky-700/10 hover:shadow-md active:scale-95">
+                  <button className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-1.5 px-4 rounded-xl flex items-center gap-1.5 text-sm transition-all shadow-sm shadow-emerald-700/10 hover:shadow-md active:scale-95">
                     <Plus size={16} />
                     <span>Add Habit</span>
                   </button>
@@ -428,8 +432,8 @@ export default function HabitsPage() {
                     item.status === 'positive' ? 'border-blue-300' : item.status === 'negative' ? 'border-red-300' : 'border-gray-100/80'
                   }`}
                 >
-                  <div className={`absolute top-0 left-0 h-full bg-blue-50/90 transition-all duration-500 ease-out z-0 pointer-events-none ${item.status === 'positive' ? 'w-full' : 'w-0'}`} />
-                  <div className={`absolute top-0 right-0 h-full bg-red-50/90 transition-all duration-500 ease-out z-0 pointer-events-none ${item.status === 'negative' ? 'w-full' : 'w-0'}`} />
+                  <div className={`absolute top-0 left-0 h-full bg-blue-100/95 transition-all duration-500 ease-out z-0 pointer-events-none ${item.status === 'positive' ? 'w-full' : 'w-0'}`} />
+                  <div className={`absolute top-0 right-0 h-full bg-red-100/95 transition-all duration-500 ease-out z-0 pointer-events-none ${item.status === 'negative' ? 'w-full' : 'w-0'}`} />
 
                   <div className={`flex items-center justify-center transition-all duration-500 ease-out z-10 relative overflow-hidden ${
                     item.status !== 'neutral' ? 'w-0 opacity-0 px-0' : 'w-12 opacity-100 px-3 bg-gray-50 border-r border-gray-100'
@@ -516,11 +520,12 @@ export default function HabitsPage() {
 
           <div className="mt-5 flex items-center justify-end gap-2 text-xs text-gray-400 pr-1">
             <span>Less</span>
-            <div className="w-[10px] h-[10px] rounded-[2px] bg-gray-100 border border-gray-200"></div>
-            <div className="w-[10px] h-[10px] rounded-[2px] bg-green-100"></div>
-            <div className="w-[10px] h-[10px] rounded-[2px] bg-green-300"></div>
-            <div className="w-[10px] h-[10px] rounded-[2px] bg-green-400"></div>
-            <div className="w-[10px] h-[10px] rounded-[2px] bg-[#15803d]"></div>
+            <div className="w-[10px] h-[10px] rounded-[2px] bg-[#D01E18]"></div>
+            <div className="w-[10px] h-[10px] rounded-[2px] bg-[#EE6125]"></div>
+            <div className="w-[10px] h-[10px] rounded-[2px] bg-[#F49521]"></div>
+            <div className="w-[10px] h-[10px] rounded-[2px] bg-[#FFCC24]"></div>
+            <div className="w-[10px] h-[10px] rounded-[2px] bg-[#C9D43A]"></div>
+            <div className="w-[10px] h-[10px] rounded-[2px] bg-[#86CA1A]"></div>
             <span>More</span>
           </div>
         </section>

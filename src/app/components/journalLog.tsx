@@ -152,7 +152,7 @@ export default function JournalLog() {
 
   return (
     <div
-      className="bg-white border border-gray-200 rounded-3xl px-8 py-8"
+      className="bg-white border border-gray-200 rounded-3xl px-8 py-8 m-2"
       style={inter.style}
     >
 

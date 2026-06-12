@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Navbar from "../components/navbar";
 import JournalLog from "../components/journalLog";
-import {Flame, ChevronDown} from 'lucide-react';
+import {Flame, ChevronDown, CheckCheckIcon} from 'lucide-react';
 import { useRouter } from "next/navigation";
 
 import {
@@ -349,41 +349,81 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        <div className="mt-4 w-full rounded-3xl relative overflow-hidden scroll-vertical noise-bg"
-        style={{ background: "linear-gradient(135deg, #39210b 0%, #5c2c07 30%, #8e450d 100%)" }}
-      >
-        {/* visible container*/}
-        <div
-          className="p-6 flex items-center justify-between group cursor-pointer"
-          onClick={() => setIsJournalOpen(!isJournalOpen)}
-        >
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-            style={{
-              background: "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.08) 50%, transparent 60%)",
-              backgroundSize: "200% 100%",
-              animation: "sheen 0.6s ease forwards",
-            }}
-          />
-          <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-white/70 mb-1">Daily check-in</p>
-            <h2 className="text-lg font-semibold text-white">Log today's activity</h2>
-            <p className="text-sm text-white/80 mt-1">How were your activities today?</p>
+        <div className="mt-8 w-full h-full grid grid-cols-[3fr_1fr] gap-3">
+          <div className="bg-gray-60 rounded-xl border border-gray-200 shadow-sm p-8">
+            <h2 className="text-lg font-bold text-[#1D4258] mb-3">Medication Schedule</h2>
+            <p className="text-md font-semibold text-[#25668E] mb-4">Morning Dose</p>
+            <ul className="space-y-2 text-sm font-medium">
+              <li className="flex items-center justify-between">
+                <div className="flex items-left gap-2">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-blue-500"
+                  />
+                  <span className="text-gray-650">Medicine 1</span>
+                </div>
+                <span className="text-sm text-gray-500">8:00 AM</span>
+              </li>
+              <li className="flex items-center justify-between">
+                <div className="flex items-left gap-2">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-blue-500"
+                  />
+                  <span className="text-gray-650">Medicine 2</span>
+                </div>
+                <span className="text-sm text-gray-500">2:00 PM</span>
+              </li>
+              <li className="flex items-center justify-between">
+                <div className="flex items-left gap-2">
+                  <input
+                    type="checkbox"
+                    className="w-4 h-4 accent-blue-500"
+                  />
+                  <span className="text-gray-650">Medicine 3</span>
+                </div>
+                <span className="text-sm text-gray-500">8:00 PM</span>
+              </li>
+            </ul>
           </div>
-          <ChevronDown
-            size={40}
-            className={`text-white transition-transform duration-300 flex-shrink-0 ${isJournalOpen ? 'rotate-180' : ''}`}
-          />
+          <div className="bg-gray-600 rounded-xl border border-gray-400 shadow-sm p-4"></div>
         </div>
 
-        {/* Collapsible journal */}
-        <div className={`overflow-hidden transition-all duration-200 ease-in-out ${
-          isJournalOpen ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0'
-        }`}>
-          <div className="px-3 pb-3">
-            <JournalLog />
+        <div className="mt-4 w-full rounded-3xl relative overflow-hidden scroll-vertical noise-bg"
+            style={{ background: "linear-gradient(135deg, #39210b 0%, #5c2c07 30%, #8e450d 100%)" }}
+          >
+          {/* visible container*/}
+          <div
+            className="p-6 flex items-center justify-between group cursor-pointer"
+            onClick={() => setIsJournalOpen(!isJournalOpen)}
+          >
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+              style={{
+                background: "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.08) 50%, transparent 60%)",
+                backgroundSize: "200% 100%",
+                animation: "sheen 0.6s ease forwards",
+              }}
+            />
+            <div>
+              <p className="text-xs uppercase tracking-[0.2em] text-white/70 mb-1">Daily check-in</p>
+              <h2 className="text-lg font-semibold text-white">Log today's activity</h2>
+              <p className="text-sm text-white/80 mt-1">How were your activities today?</p>
+            </div>
+            <ChevronDown
+              size={40}
+              className={`text-white transition-transform duration-300 flex-shrink-0 ${isJournalOpen ? 'rotate-180' : ''}`}
+            />
+          </div>
+
+          {/* Collapsible journal */}
+          <div className={`overflow-hidden transition-all duration-200 ease-in-out ${
+            isJournalOpen ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0'
+          }`}>
+            <div className="px-3 pb-3">
+              <JournalLog />
+            </div>
           </div>
         </div>
-      </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <section className="rounded-3xl bg-white p-6 shadow-sm border border-gray-200">

@@ -19,6 +19,7 @@ import {
   Legend,
   Filler,
 } from "chart.js";
+import HealthCarousel from "../components/HealthCarousel";
 
 Chart.register(
   CategoryScale,
@@ -386,7 +387,9 @@ export default function DashboardPage() {
               </li>
             </ul>
           </div>
-          <div className="bg-gray-600 rounded-xl border border-gray-400 shadow-sm p-4"></div>
+          <div className="rounded-xl border border-gray-400 shadow-sm flex flex-col items-center justify-center">
+           <HealthCarousel />
+          </div>
         </div>
 
         <div className="mt-4 w-full rounded-3xl relative overflow-hidden scroll-vertical noise-bg"

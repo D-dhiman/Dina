@@ -4,11 +4,12 @@ import { useState } from "react";
 import Navbar from "../components/navbar";
 import {
   Flame, Edit2, Check, X, User, Activity, Target, Settings2,
-  Droplets, Moon, Footprints, Apple, Heart, Weight, Ruler,
-  ChevronRight
+  Droplets, Moon, Footprints, Apple, Heart, Weight,
+  ChevronRight, Plus, Trash2, Pill, Clock, CalendarDays, Wrench
 } from "lucide-react";
 
-const AVATAR_BG = "#062e14";
+// Declared to fix the missing reference error shown in image_a35866.png
+const SKYBLUE_BG = "#0369a1"; 
 
 interface EditableFieldProps {
   label: string;
@@ -26,8 +27,8 @@ function EditableField({ label, value, onSave, type = "text", suffix }: Editable
   const cancel = () => { setDraft(value); setEditing(false); };
 
   return (
-    <div className="flex items-center justify-between py-3 border-b border-white/10 last:border-0">
-      <span className="text-sm text-white/50 w-32 flex-shrink-0">{label}</span>
+    <div className="flex items-center justify-between py-3 border-b border-black/10 last:border-0">
+      <span className="text-sm text-gray-700/80 w-36 flex-shrink-0 font-medium">{label}</span>
       {editing ? (
         <div className="flex items-center gap-2 flex-1 justify-end">
           <input
@@ -36,16 +37,16 @@ function EditableField({ label, value, onSave, type = "text", suffix }: Editable
             value={draft}
             onChange={e => setDraft(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") cancel(); }}
-            className="bg-white/10 text-white text-sm rounded-xl px-3 py-1.5 w-36 outline-none border border-white/20 focus:border-white/40"
+            className="bg-white/90 text-gray-900 text-sm rounded-xl px-3 py-1.5 w-36 outline-none border border-black/20 focus:border-sky-600 shadow-inner"
           />
-          {suffix && <span className="text-white/40 text-xs">{suffix}</span>}
-          <button onClick={commit} className="text-emerald-400 hover:text-emerald-300 transition-colors"><Check size={16} /></button>
-          <button onClick={cancel} className="text-white/40 hover:text-white/70 transition-colors"><X size={16} /></button>
+          {suffix && <span className="text-gray-600 text-xs">{suffix}</span>}
+          <button onClick={commit} className="text-sky-700 hover:text-sky-900 transition-colors"><Check size={16} /></button>
+          <button onClick={cancel} className="text-gray-500 hover:text-gray-700 transition-colors"><X size={16} /></button>
         </div>
       ) : (
         <div className="flex items-center gap-2">
-          <span className="text-sm text-white font-medium">{value}{suffix ? ` ${suffix}` : ""}</span>
-          <button onClick={() => { setDraft(value); setEditing(true); }} className="text-white/30 hover:text-white/70 transition-colors ml-1">
+          <span className="text-sm text-gray-900 font-semibold">{value}{suffix ? ` ${suffix}` : ""}</span>
+          <button onClick={() => { setDraft(value); setEditing(true); }} className="text-gray-500/70 hover:text-gray-900 transition-colors ml-1">
             <Edit2 size={13} />
           </button>
         </div>
@@ -61,9 +62,10 @@ interface GoalCardProps {
   unit: string;
   color: string;
   onSave: (val: string) => void;
+  onDelete: () => void;
 }
 
-function GoalCard({ icon, label, value, unit, color, onSave }: GoalCardProps) {
+function GoalCard({ icon, label, value, unit, color, onSave, onDelete }: GoalCardProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
 
@@ -71,18 +73,37 @@ function GoalCard({ icon, label, value, unit, color, onSave }: GoalCardProps) {
   const cancel = () => { setDraft(value); setEditing(false); };
 
   return (
-    <div className="bg-white/8 border border-white/10 rounded-2xl p-4 flex flex-col gap-3">
+    <div className="bg-white/80 border border-black/5 rounded-2xl p-4 flex flex-col gap-3 shadow-md backdrop-blur-xs relative group">
       <div className="flex items-center justify-between">
-        <div className={`p-2 rounded-xl ${color}`}>{icon}</div>
-        <button
-          onClick={() => editing ? cancel() : (setDraft(value), setEditing(true))}
-          className="text-white/30 hover:text-white/70 transition-colors"
-        >
-          {editing ? <X size={14} /> : <Edit2 size={14} />}
-        </button>
+        <div className={`p-2 rounded-xl shadow-xs ${color}`}>{icon}</div>
+        
+        <div className="flex items-center gap-1">
+          {editing ? (
+            <button onClick={cancel} className="text-gray-400 hover:text-gray-700 p-1 transition-colors">
+              <X size={14} />
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={onDelete}
+                title="Delete goal"
+                className="text-red-400 hover:text-red-600 p-1 rounded-md hover:bg-red-50 sm:opacity-0 group-hover:opacity-100 transition-all duration-200"
+              >
+                <Trash2 size={14} />
+              </button>
+              <button
+                onClick={() => { setDraft(value); setEditing(true); }}
+                title="Edit goal value"
+                className="text-gray-400 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100 transition-colors"
+              >
+                <Edit2 size={14} />
+              </button>
+            </>
+          )}
+        </div>
       </div>
       <div>
-        <p className="text-xs text-white/50 mb-1">{label}</p>
+        <p className="text-xs text-gray-600 font-medium mb-1 truncate">{label}</p>
         {editing ? (
           <div className="flex items-center gap-1.5">
             <input
@@ -91,14 +112,65 @@ function GoalCard({ icon, label, value, unit, color, onSave }: GoalCardProps) {
               value={draft}
               onChange={e => setDraft(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") cancel(); }}
-              className="bg-white/10 text-white text-lg font-semibold rounded-lg px-2 py-0.5 w-20 outline-none border border-white/30"
+              className="bg-white text-gray-900 text-lg font-bold rounded-lg px-2 py-0.5 w-20 outline-none border border-gray-300 focus:border-emerald-600 shadow-inner"
             />
-            <span className="text-white/40 text-xs">{unit}</span>
-            <button onClick={commit} className="text-emerald-400 hover:text-emerald-300 ml-1"><Check size={14} /></button>
+            <span className="text-gray-500 text-xs truncate max-w-[40px]">{unit}</span>
+            <button onClick={commit} className="text-emerald-700 hover:text-emerald-900 ml-1"><Check size={14} /></button>
           </div>
         ) : (
-          <p className="text-lg font-semibold text-white">{value} <span className="text-sm font-normal text-white/40">{unit}</span></p>
+          <p className="text-lg font-extrabold text-gray-900 truncate">
+            {value} <span className="text-sm font-medium text-gray-500">{unit}</span>
+          </p>
         )}
+      </div>
+    </div>
+  );
+}
+
+interface MedicationRowProps {
+  id: string;
+  name: string;
+  dosage: string;
+  frequency: string;
+  times: string[];
+  onDelete: () => void;
+}
+
+function MedicationRow({ name, dosage, frequency, times, onDelete }: MedicationRowProps) {
+  return (
+    <div className="flex items-center justify-between py-3 border-b border-black/10 last:border-0 group">
+      <div className="flex items-start gap-2.5 flex-1 min-w-0">
+        <div className="p-1.5 bg-white/60 rounded-lg text-purple-900 mt-0.5 flex-shrink-0">
+          <Pill size={15} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-gray-900 truncate">{name}</p>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5 text-xs font-semibold text-purple-950/70">
+            <span>{dosage}</span>
+            <span>•</span>
+            <span className="flex items-center gap-0.5 text-purple-800">
+              <CalendarDays size={11} /> {frequency}
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="flex flex-wrap gap-1 justify-end max-w-[160px]">
+          {times.map((t, idx) => (
+            <div key={idx} className="flex items-center gap-0.5 bg-white/70 px-2 py-0.5 rounded-md border border-purple-200 text-[11px] font-black text-purple-900">
+              <Clock size={10} />
+              <span>{t}</span>
+            </div>
+          ))}
+        </div>
+        <button
+          onClick={onDelete}
+          title="Delete medication schedule"
+          className="text-red-500 hover:text-red-700 p-1 rounded-md hover:bg-red-50 sm:opacity-0 group-hover:opacity-100 transition-all duration-200"
+        >
+          <Trash2 size={14} />
+        </button>
       </div>
     </div>
   );
@@ -113,19 +185,35 @@ interface TogglePrefProps {
 
 function TogglePref({ label, description, value, onChange }: TogglePrefProps) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-white/10 last:border-0">
+    <div className="flex items-center justify-between py-3 border-b border-black/10 last:border-0">
       <div>
-        <p className="text-sm text-white font-medium">{label}</p>
-        <p className="text-xs text-white/40 mt-0.5">{description}</p>
+        <p className="text-sm text-slate-900 font-semibold">{label}</p>
+        <p className="text-xs text-slate-700 font-medium mt-0.5">{description}</p>
       </div>
       <button
         onClick={() => onChange(!value)}
-        className={`relative w-11 h-6 rounded-full transition-colors duration-300 flex-shrink-0 ${value ? "bg-emerald-500" : "bg-white/20"}`}
+        className={`relative w-11 h-6 rounded-full transition-colors duration-300 flex-shrink-0 shadow-inner ${value ? "bg-emerald-600" : "bg-slate-400"}`}
       >
-        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform duration-300 ${value ? "translate-x-5" : "translate-x-0"}`} />
+        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${value ? "translate-x-5" : "translate-x-0"}`} />
       </button>
     </div>
   );
+}
+
+interface CustomGoal {
+  id: string;
+  label: string;
+  unit: string;
+  icon: React.ReactNode;
+  color: string;
+}
+
+interface MedicationItem {
+  id: string;
+  name: string;
+  dosage: string;
+  frequency: string;
+  times: string[];
 }
 
 export default function ProfilePage() {
@@ -138,7 +226,18 @@ export default function ProfilePage() {
     dob: "1997-04-12",
   });
 
-  const [goals, setGoals] = useState({
+  const [diet, setDiet] = useState({
+    type: "Vegetarian",
+    allergies: "None",
+    restrictions: "No Refined Sugar",
+  });
+
+  const [medications, setMedications] = useState<MedicationItem[]>([
+    { id: "med-1", name: "Omega 3 Fish Oil", dosage: "1 Capsule", frequency: "Daily", times: ["08:30"] },
+    { id: "med-2", name: "Metformin", dosage: "500mg", frequency: "Twice a day", times: ["08:00", "20:30"] }
+  ]);
+
+  const [goals, setGoals] = useState<Record<string, string>>({
     steps: "10000",
     water: "2.5",
     sleep: "8",
@@ -146,6 +245,15 @@ export default function ProfilePage() {
     weight: "68",
     activeMinutes: "45",
   });
+
+  const [goalTypes, setGoalTypes] = useState<CustomGoal[]>([
+    { id: 'steps', label: 'Daily steps', unit: 'steps', icon: <Footprints size={16} className="text-amber-800" />, color: 'bg-amber-300' },
+    { id: 'water', label: 'Water intake', unit: 'L / day', icon: <Droplets size={16} className="text-sky-800" />, color: 'bg-sky-300' },
+    { id: 'sleep', label: 'Sleep target', unit: 'hrs', icon: <Moon size={16} className="text-purple-800" />, color: 'bg-purple-300' },
+    { id: 'calories', label: 'Calories', unit: 'kcal', icon: <Apple size={16} className="text-rose-800" />, color: 'bg-rose-300' },
+    { id: 'weight', label: 'Target weight', unit: 'kg', icon: <Weight size={16} className="text-emerald-800" />, color: 'bg-emerald-300' },
+    { id: 'activeMinutes', label: 'Active time', unit: 'min / day', icon: <Activity size={16} className="text-orange-800" />, color: 'bg-orange-300' }
+  ]);
 
   const [prefs, setPrefs] = useState({
     notifications: true,
@@ -156,127 +264,445 @@ export default function ProfilePage() {
     shareData: false,
   });
 
+  const [isCreatingGoal, setIsCreatingGoal] = useState(false);
+  const [newGoalLabel, setNewGoalLabel] = useState('');
+  const [newGoalUnit, setNewGoalUnit] = useState('');
+  const [newGoalValue, setNewGoalValue] = useState('');
+
+  const [isCreatingMed, setIsCreatingMed] = useState(false);
+  const [newMedName, setNewMedName] = useState('');
+  const [newMedDosage, setNewMedDosage] = useState('');
+  const [newMedFrequency, setNewMedFrequency] = useState('Daily');
+  const [newMedManualFrequency, setNewMedManualFrequency] = useState('');
+  const [newMedTimes, setNewMedTimes] = useState<string[]>(["08:00"]);
+
   const updateProfile = (key: string) => (val: string) =>
     setProfile(p => ({ ...p, [key]: val }));
+
+  const updateDiet = (key: string) => (val: string) =>
+    setDiet(d => ({ ...d, [key]: val }));
 
   const updateGoal = (key: string) => (val: string) =>
     setGoals(g => ({ ...g, [key]: val }));
 
+  const deleteGoal = (id: string) => {
+    setGoalTypes(prev => prev.filter(g => g.id !== id));
+    setGoals(prev => {
+      const copy = { ...prev };
+      delete copy[id];
+      return copy;
+    });
+  };
+
+  const deleteMedication = (id: string) => {
+    setMedications(prev => prev.filter(m => m.id !== id));
+  };
+
   const updatePref = (key: string) => (val: boolean) =>
     setPrefs(p => ({ ...p, [key]: val }));
 
+  const handleFrequencyPresetChange = (freq: string) => {
+    setNewMedFrequency(freq);
+    if (freq === "Daily" || freq === "Alternate days" || freq === "Weekly" || freq === "Monthly" || freq === "Emergency Only") {
+      setNewMedTimes(["08:00"]);
+    } else if (freq === "Twice a day") {
+      setNewMedTimes(["08:00", "20:00"]);
+    } else if (freq === "Thrice a day") {
+      setNewMedTimes(["08:00", "14:00", "20:00"]);
+    }
+  };
+
+  const handleTimeChange = (index: number, val: string) => {
+    const updated = [...newMedTimes];
+    updated[index] = val;
+    setNewMedTimes(updated);
+  };
+
+  const addTimeSlot = () => {
+    setNewMedTimes([...newMedTimes, "12:00"]);
+  };
+
+  const removeTimeSlot = (index: number) => {
+    if (newMedTimes.length > 1) {
+      setNewMedTimes(newMedTimes.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleCreateGoal = () => {
+    const dynamicId = newGoalLabel.toLowerCase().replace(/\s+/g, '-');
+    setGoalTypes(prev => [
+      ...prev,
+      {
+        id: dynamicId,
+        label: newGoalLabel,
+        unit: newGoalUnit || "units",
+        icon: <Target size={16} className="text-emerald-800" />,
+        color: 'bg-emerald-300'
+      }
+    ]);
+    setGoals(prevGoals => ({ ...prevGoals, [dynamicId]: newGoalValue }));
+    setIsCreatingGoal(false);
+    setNewGoalLabel(''); setNewGoalUnit(''); setNewGoalValue('');
+  };
+
+  const handleCreateMedication = () => {
+    const uniqueId = `med-${Date.now()}`;
+    const finalFrequency = newMedFrequency === "Manual" ? (newMedManualFrequency || "Custom Schedule") : newMedFrequency;
+    const finalTimes = [...newMedTimes].sort();
+
+    setMedications(prev => [
+      ...prev,
+      { id: uniqueId, name: newMedName, dosage: newMedDosage || "1 dose", frequency: finalFrequency, times: finalTimes }
+    ]);
+    setIsCreatingMed(false);
+    setNewMedName(''); setNewMedDosage(''); setNewMedFrequency('Daily'); setNewMedManualFrequency(''); setNewMedTimes(['08:00']);
+  };
+
   const statsData = [
-    { label: "Day streak", value: "7", icon: <Flame size={16} className="text-amber-400 fill-amber-400" /> },
-    { label: "Habits tracked", value: "4", icon: <Activity size={16} className="text-emerald-400" /> },
-    { label: "Goals hit", value: "12", icon: <Target size={16} className="text-sky-400" /> },
-    { label: "Days active", value: "21", icon: <Heart size={16} className="text-rose-400" /> },
+    { label: "Day streak", value: "7", icon: <Flame size={16} className="text-sky-600 fill-sky-400" /> },
+    { label: "Habits tracked", value: "4", icon: <Activity size={16} className="text-sky-800" /> },
+    { label: "Goals hit", value: "12", icon: <Target size={16} className="text-sky-700" /> },
+    { label: "Days active", value: "21", icon: <Heart size={16} className="text-sky-600" /> },
   ];
 
   return (
-    <div className="min-h-screen bg-[#f8f9f5] pb-24">
+    <div className="min-h-screen bg-[#fafb96]/10 pb-24">
       <main className="w-full max-w-2xl mx-auto py-10 px-4 sm:px-6">
 
         {/* Header */}
-        <header className="flex items-center justify-between mb-8 border-b border-gray-100 pb-6">
+        <header className="flex items-center justify-between mb-8 border-b border-gray-200 pb-6">
           <div>
-            <h1 className="text-3xl font-bold text-[#1e3a1e] tracking-tight">Profile</h1>
-            <p className="text-sm text-[#8a9485] font-medium mt-1">Your health identity</p>
+            <h1 className="text-3xl font-black text-[#0f240f] tracking-tight">Profile</h1>
+            <p className="text-sm text-[#556050] font-bold mt-1">Your health identity</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1 bg-[#fffbeb] border border-[#fef3c7] px-3 py-1.5 rounded-full shadow-sm">
-              <Flame size={18} className="text-amber-500 fill-amber-500" />
-              <span className="text-sm font-bold text-amber-800">7</span>
+            <div className="flex items-center gap-1 bg-amber-200 border border-amber-300 px-3 py-1.5 rounded-full shadow-md">
+              <Flame size={18} className="text-amber-700 fill-amber-600" />
+              <span className="text-sm font-black text-amber-900">7</span>
             </div>
           </div>
         </header>
 
-        {/* Avatar + name card */}
-        <div
-          className="rounded-3xl p-6 mb-6 relative overflow-hidden"
-          style={{ background: "linear-gradient(135deg, #1e3a1e 0%, #2d5a2d 100%)" }}
-        >
+        {/* Top User Card Row (Updated to gorgeous Sky Blue Palette) */}
+        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-sky-100 to-sky-200 border border-sky-300/60 shadow-md">
           <div className="flex items-center gap-5">
             <div
-              className="w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-2xl flex-shrink-0 border-2 border-white/20"
-              style={{ background: AVATAR_BG }}
+              className="w-20 h-20 rounded-full flex items-center justify-center text-white font-black text-2xl flex-shrink-0 border-2 border-white shadow-md"
+              style={{ background: SKYBLUE_BG }} // Using the variable from image_a35866.png
             >
               {profile.name.charAt(0).toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold text-white truncate">{profile.name}</h2>
-              </div>
-              <p className="text-white/50 text-sm mt-0.5">Age {profile.age} · {profile.weight} kg · {profile.height} cm</p>
-              <span className="inline-block mt-2 text-xs bg-white/10 text-white/70 px-3 py-1 rounded-full">Blood type: {profile.bloodType}</span>
+              <h2 className="text-2xl font-black text-sky-950 truncate">{profile.name}</h2>
+              <p className="text-sky-800/90 text-sm font-bold mt-0.5">Age {profile.age} · {profile.weight} kg · {profile.height} cm</p>
+              <span className="inline-block mt-2 text-xs bg-sky-600/15 text-sky-900 font-extrabold px-3 py-1 rounded-full border border-sky-400/30">Blood type: {profile.bloodType}</span>
             </div>
           </div>
 
-          {/* Stats row */}
           <div className="grid grid-cols-4 gap-2 mt-6">
             {statsData.map(s => (
-              <div key={s.label} className="bg-white/8 border border-white/10 rounded-2xl p-3 text-center">
+              <div key={s.label} className="bg-white/90 border border-sky-100 rounded-2xl p-3 text-center shadow-sm">
                 <div className="flex justify-center mb-1">{s.icon}</div>
-                <p className="text-white font-bold text-lg leading-tight">{s.value}</p>
-                <p className="text-white/40 text-[10px] mt-0.5 leading-tight">{s.label}</p>
+                <p className="text-sky-950 font-black text-lg leading-tight">{s.value}</p>
+                <p className="text-sky-800 text-[10px] font-bold mt-0.5 leading-tight">{s.label}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Personal info */}
-        <div
-          className="rounded-3xl p-6 mb-6"
-          style={{ background: "linear-gradient(135deg, #31261C 0%, #4a3728 100%)" }}
-        >
+        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-[#ffedd5] to-[#fed7aa] border border-[#fdba74]/40 shadow-md">
           <div className="flex items-center gap-2 mb-4">
-            <User size={16} className="text-white/50" />
-            <h3 className="text-sm uppercase tracking-[0.18em] text-white/50 font-medium">Personal info</h3>
+            <User size={16} className="text-[#7c2d12] stroke-[2.5]" />
+            <h3 className="text-sm uppercase tracking-[0.18em] text-[#7c2d12] font-black">Personal info</h3>
           </div>
-          <EditableField label="Name" value={profile.name} onSave={updateProfile("name")} />
-          <EditableField label="Date of birth" value={profile.dob} onSave={updateProfile("dob")} type="date" />
-          <EditableField label="Age" value={profile.age} onSave={updateProfile("age")} type="number" suffix="yrs" />
-          <EditableField label="Weight" value={profile.weight} onSave={updateProfile("weight")} type="number" suffix="kg" />
-          <EditableField label="Height" value={profile.height} onSave={updateProfile("height")} type="number" suffix="cm" />
-          <EditableField label="Blood type" value={profile.bloodType} onSave={updateProfile("bloodType")} />
+          <div className="bg-white/40 p-2.5 rounded-2xl border border-orange-200/40">
+            <EditableField label="Name" value={profile.name} onSave={updateProfile("name")} />
+            <EditableField label="Date of birth" value={profile.dob} onSave={updateProfile("dob")} type="date" />
+            <EditableField label="Age" value={profile.age} onSave={updateProfile("age")} type="number" suffix="yrs" />
+            <EditableField label="Weight" value={profile.weight} onSave={updateProfile("weight")} type="number" suffix="kg" />
+            <EditableField label="Height" value={profile.height} onSave={updateProfile("height")} type="number" suffix="cm" />
+            <EditableField label="Blood type" value={profile.bloodType} onSave={updateProfile("bloodType")} />
+          </div>
+        </div>
+
+        {/* Dietary Preferences */}
+        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-[#fef08a] to-[#fde047] border border-[#facc15]/40 shadow-md">
+          <div className="flex items-center gap-2 mb-4">
+            <Apple size={16} className="text-[#713f12] stroke-[2.5]" />
+            <h3 className="text-sm uppercase tracking-[0.18em] text-[#713f12] font-black">Dietary Preferences</h3>
+          </div>
+          <div className="bg-white/40 p-2.5 rounded-2xl border border-yellow-300/40">
+            <EditableField label="Diet Type" value={diet.type} onSave={updateDiet("type")} />
+            <EditableField label="Allergies" value={diet.allergies} onSave={updateDiet("allergies")} />
+            <EditableField label="Restrictions" value={diet.restrictions} onSave={updateDiet("restrictions")} />
+          </div>
+        </div>
+
+        {/* Medications & Reminders Row */}
+        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-[#e9d5ff] to-[#d8b4fe] border border-[#c084fc]/40 shadow-md">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Pill size={16} className="text-[#581c87] stroke-[2.5]" />
+              <h3 className="text-sm uppercase tracking-[0.18em] text-[#581c87] font-black">Medication Schedule</h3>
+            </div>
+            {!isCreatingMed && (
+              <button
+                onClick={() => setIsCreatingMed(true)}
+                className="flex items-center gap-2 text-[#581c87] hover:bg-purple-300/60 transition-colors px-3 py-1.5 rounded-lg bg-white/90 border border-[#c084fc]/50 text-sm font-bold shadow-sm"
+              >
+                <Plus size={16} />
+                <span>Add Medication</span>
+              </button>
+            )}
+          </div>
+
+          {isCreatingMed ? (
+            <div className="space-y-4 bg-white/80 p-4 rounded-2xl border border-[#c084fc]/40 shadow-inner">
+              <div>
+                <label className="block text-sm font-bold text-[#581c87] mb-1">Medication Name</label>
+                <input
+                  type="text"
+                  value={newMedName}
+                  onChange={(e) => setNewMedName(e.target.value)}
+                  placeholder="e.g., Metformin, Aspirin, Vitamin C"
+                  className="w-full bg-white text-gray-900 border border-gray-300 placeholder-gray-400 rounded-lg px-3 py-2 focus:border-purple-600 focus:outline-none text-sm shadow-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-bold text-[#581c87] mb-1">Dosage Allocation</label>
+                  <input
+                    type="text"
+                    value={newMedDosage}
+                    onChange={(e) => setNewMedDosage(e.target.value)}
+                    placeholder="e.g., 1 tablet, 500mg"
+                    className="w-full bg-white text-gray-900 border border-gray-300 placeholder-gray-400 rounded-lg px-3 py-2 focus:border-purple-600 focus:outline-none text-sm shadow-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-[#581c87] mb-1">Frequency</label>
+                  <select
+                    value={newMedFrequency}
+                    onChange={(e) => handleFrequencyPresetChange(e.target.value)}
+                    className="w-full bg-white text-gray-900 border border-gray-300 rounded-lg px-2 py-2 focus:border-purple-600 focus:outline-none text-sm shadow-xs h-[38px] font-medium"
+                  >
+                    <option value="Daily">Daily</option>
+                    <option value="Twice a day">Twice a day</option>
+                    <option value="Thrice a day">Thrice a day</option>
+                    <option value="Alternate days">Alternate days</option>
+                    <option value="Weekly">Weekly</option>
+                    <option value="Monthly">Monthly</option>
+                    <option value="Emergency Only">Emergency Only</option>
+                    <option value="Manual">Custom / Manual Entry</option>
+                  </select>
+                </div>
+              </div>
+
+              {newMedFrequency === "Manual" && (
+                <div className="bg-purple-100/50 border border-purple-300/40 p-3 rounded-xl flex items-center gap-3 shadow-inner">
+                  <Wrench size={16} className="text-purple-800 flex-shrink-0" />
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold text-[#581c87] mb-1">Type Custom Frequency Schedule</label>
+                    <input
+                      type="text"
+                      value={newMedManualFrequency}
+                      onChange={(e) => setNewMedManualFrequency(e.target.value)}
+                      placeholder="e.g., Every 6 hours, 4 times a week"
+                      className="w-full bg-white text-gray-900 border border-gray-300 placeholder-gray-400 rounded-lg px-2.5 py-1.5 focus:border-purple-600 focus:outline-none text-xs shadow-xs"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-purple-50/60 p-3 rounded-xl border border-purple-200/60">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-black text-[#581c87] uppercase tracking-wider">
+                    Intake Time Allocation(s)
+                  </label>
+                  {(newMedFrequency === "Manual" || newMedFrequency === "Emergency Only") && (
+                    <button
+                      type="button"
+                      onClick={addTimeSlot}
+                      className="text-xs bg-white text-purple-700 hover:bg-purple-100 border border-purple-300 font-extrabold px-2 py-0.5 rounded-md shadow-xs transition-colors"
+                    >
+                      + Add Time Slot
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {newMedTimes.map((timeValue, index) => (
+                    <div key={index} className="flex items-center gap-1 bg-white p-1.5 rounded-lg border border-gray-200 shadow-2xs">
+                      <input
+                        type="time"
+                        value={timeValue}
+                        onChange={(e) => handleTimeChange(index, e.target.value)}
+                        className="w-full bg-transparent text-gray-900 font-medium focus:outline-none text-xs"
+                      />
+                      {newMedTimes.length > 1 && (newMedFrequency === "Manual" || newMedFrequency === "Emergency Only") && (
+                        <button
+                          type="button"
+                          onClick={() => removeTimeSlot(index)}
+                          className="text-gray-400 hover:text-red-500 p-0.5 transition-colors"
+                        >
+                          <X size={12} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setIsCreatingMed(false)}
+                  className="text-gray-600 hover:text-gray-900 transition-colors px-4 py-2 text-sm font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateMedication}
+                  disabled={!newMedName || !newMedDosage || (newMedFrequency === "Manual" && !newMedManualFrequency)}
+                  className={`px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors text-sm shadow-sm ${(!newMedName || !newMedDosage || (newMedFrequency === "Manual" && !newMedManualFrequency)) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  Add Schedule
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white/40 p-2.5 rounded-2xl border border-purple-300/40">
+              {medications.length === 0 ? (
+                <p className="text-center py-4 text-xs font-semibold text-purple-950/60">No medications allocated. Use the button above to add one.</p>
+              ) : (
+                medications.map(med => (
+                  <MedicationRow
+                    key={med.id}
+                    id={med.id}
+                    name={med.name}
+                    dosage={med.dosage}
+                    frequency={med.frequency}
+                    times={med.times}
+                    onDelete={() => deleteMedication(med.id)}
+                  />
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         {/* Health goals */}
-        <div
-          className="rounded-3xl p-6 mb-6"
-          style={{ background: "linear-gradient(135deg, #2a3a2e 0%, #1e2b22 100%)" }}
-        >
-          <div className="flex items-center gap-2 mb-5">
-            <Target size={16} className="text-white/50" />
-            <h3 className="text-sm uppercase tracking-[0.18em] text-white/50 font-medium">Health goals</h3>
+        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-[#d1fae5] to-[#a7f3d0] border border-[#6ee7b7]/40 shadow-md">
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <Target size={16} className="text-[#065f46] stroke-[2.5]" />
+              <h3 className="text-sm uppercase tracking-[0.18em] text-[#065f46] font-black">
+                Health goals
+              </h3>
+            </div>
+            {!isCreatingGoal && (
+              <button
+                onClick={() => setIsCreatingGoal(true)}
+                className="flex items-center gap-2 text-[#064e3b] hover:bg-emerald-300/60 transition-colors px-3 py-1.5 rounded-lg bg-white/90 border border-[#6ee7b7]/50 text-sm font-bold shadow-sm"
+              >
+                <Plus size={16} />
+                <span>Create goal</span>
+              </button>
+            )}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <GoalCard icon={<Footprints size={16} className="text-amber-300" />} label="Daily steps" value={goals.steps} unit="steps" color="bg-amber-500/20" onSave={updateGoal("steps")} />
-            <GoalCard icon={<Droplets size={16} className="text-sky-300" />} label="Water intake" value={goals.water} unit="L / day" color="bg-sky-500/20" onSave={updateGoal("water")} />
-            <GoalCard icon={<Moon size={16} className="text-purple-300" />} label="Sleep target" value={goals.sleep} unit="hrs" color="bg-purple-500/20" onSave={updateGoal("sleep")} />
-            <GoalCard icon={<Apple size={16} className="text-rose-300" />} label="Calories" value={goals.calories} unit="kcal" color="bg-rose-500/20" onSave={updateGoal("calories")} />
-            <GoalCard icon={<Weight size={16} className="text-emerald-300" />} label="Target weight" value={goals.weight} unit="kg" color="bg-emerald-500/20" onSave={updateGoal("weight")} />
-            <GoalCard icon={<Activity size={16} className="text-orange-300" />} label="Active time" value={goals.activeMinutes} unit="min / day" color="bg-orange-500/20" onSave={updateGoal("activeMinutes")} />
-          </div>
+
+          {isCreatingGoal ? (
+            <div className="space-y-4 bg-white/80 p-4 rounded-2xl border border-[#6ee7b7]/40 shadow-inner">
+              <div>
+                <label className="block text-sm font-bold text-[#065f46] mb-1">Goal Type / Title</label>
+                <input
+                  type="text"
+                  value={newGoalLabel}
+                  onChange={(e) => setNewGoalLabel(e.target.value)}
+                  placeholder="e.g., Green Tea, Reading, Pushups"
+                  className="w-full bg-white text-gray-900 border border-gray-300 placeholder-gray-400 rounded-lg px-3 py-2 focus:border-emerald-600 focus:outline-none text-sm shadow-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-bold text-[#065f46] mb-1">Target Value</label>
+                  <input
+                    type="number"
+                    value={newGoalValue}
+                    onChange={(e) => setNewGoalValue(e.target.value)}
+                    placeholder="e.g., 3, 45, 500"
+                    className="w-full bg-white text-gray-900 border border-gray-300 placeholder-gray-400 rounded-lg px-3 py-2 focus:border-emerald-600 focus:outline-none text-sm shadow-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-[#065f46] mb-1">Unit</label>
+                  <input
+                    type="text"
+                    value={newGoalUnit}
+                    onChange={(e) => setNewGoalUnit(e.target.value)}
+                    placeholder="e.g., cups, pages, reps"
+                    className="w-full bg-white text-gray-900 border border-gray-300 placeholder-gray-400 rounded-lg px-3 py-2 focus:border-emerald-600 focus:outline-none text-sm shadow-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setIsCreatingGoal(false)}
+                  className="text-gray-600 hover:text-gray-900 transition-colors px-4 py-2 text-sm font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateGoal}
+                  disabled={!newGoalLabel || !newGoalValue}
+                  className={`px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors text-sm shadow-sm ${!newGoalLabel || !newGoalValue ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  Create goal
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {goalTypes.map(type => {
+                const goalValue = goals[type.id] || '0';
+
+                return (
+                  <GoalCard
+                    key={type.id}
+                    icon={type.icon}
+                    label={type.label}
+                    value={goalValue}
+                    unit={type.unit}
+                    color={type.color}
+                    onSave={updateGoal(type.id)}
+                    onDelete={() => deleteGoal(type.id)}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Preferences */}
-        <div
-          className="rounded-3xl p-6 mb-6"
-          style={{ background: "linear-gradient(135deg, #2a3d52 0%, #1e2d3d 100%)" }}
-        >
+        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-[#dbeafe] to-[#bfdbfe] border border-[#93c5fd]/40 shadow-md">
           <div className="flex items-center gap-2 mb-4">
-            <Settings2 size={16} className="text-white/50" />
-            <h3 className="text-sm uppercase tracking-[0.18em] text-white/50 font-medium">Preferences</h3>
+            <Settings2 size={16} className="text-[#1e3a8a] stroke-[2.5]" />
+            <h3 className="text-sm uppercase tracking-[0.18em] text-[#1e3a8a] font-black">Preferences</h3>
           </div>
-          <TogglePref label="Push notifications" description="Daily reminders and streak alerts" value={prefs.notifications} onChange={updatePref("notifications")} />
-          <TogglePref label="Weekly report" description="Summary every Sunday morning" value={prefs.weeklyReport} onChange={updatePref("weeklyReport")} />
-          <TogglePref label="Habit reminders" description="Nudges for incomplete habits" value={prefs.reminders} onChange={updatePref("reminders")} />
-          <TogglePref label="Metric units" description="kg, cm, litres" value={prefs.metricUnits} onChange={updatePref("metricUnits")} />
-          <TogglePref label="Share anonymised data" description="Help improve the app" value={prefs.shareData} onChange={updatePref("shareData")} />
+          <div className="bg-white/30 p-2.5 rounded-2xl border border-blue-200/40">
+            <TogglePref label="Push notifications" description="Daily reminders and streak alerts" value={prefs.notifications} onChange={updatePref("notifications")} />
+            <TogglePref label="Weekly report" description="Summary every Sunday morning" value={prefs.weeklyReport} onChange={updatePref("weeklyReport")} />
+            <TogglePref label="Habit reminders" description="Nudges for incomplete habits" value={prefs.reminders} onChange={updatePref("reminders")} />
+            <TogglePref label="Metric units" description="kg, cm, litres" value={prefs.metricUnits} onChange={updatePref("metricUnits")} />
+            <TogglePref label="Share anonymised data" description="Help improve the app" value={prefs.shareData} onChange={updatePref("shareData")} />
+          </div>
         </div>
 
         {/* Account actions */}
-        <div className="rounded-3xl overflow-hidden border border-gray-200 bg-white">
+        <div className="rounded-3xl overflow-hidden border border-gray-200 bg-white shadow-md">
           {[
             { label: "Export my data", sub: "Download a CSV of all your logs" },
             { label: "Connected devices", sub: "Sync with wearables" },
@@ -284,13 +710,13 @@ export default function ProfilePage() {
           ].map((item, i) => (
             <button key={i} className="w-full flex items-center justify-between px-6 py-4 border-b border-gray-100 last:border-0 hover:bg-gray-50 transition-colors text-left">
               <div>
-                <p className="text-sm font-medium text-gray-800">{item.label}</p>
-                {item.sub && <p className="text-xs text-gray-400 mt-0.5">{item.sub}</p>}
+                <p className="text-sm font-bold text-gray-800">{item.label}</p>
+                {item.sub && <p className="text-xs text-gray-500 mt-0.5 font-medium">{item.sub}</p>}
               </div>
-              <ChevronRight size={16} className="text-gray-300" />
+              <ChevronRight size={16} className="text-gray-400" />
             </button>
           ))}
-          <button className="w-full px-6 py-4 text-left text-sm font-medium text-red-500 hover:bg-red-50 transition-colors">
+          <button className="w-full px-6 py-4 text-left text-sm font-bold text-red-500 hover:bg-red-50 transition-colors">
             Sign out
           </button>
         </div>

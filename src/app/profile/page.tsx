@@ -5,7 +5,8 @@ import Navbar from "../components/navbar";
 import {
   Flame, Edit2, Check, X, User, Activity, Target, Settings2,
   Droplets, Moon, Footprints, Apple, Heart, Weight,
-  ChevronRight, Plus, Trash2, Pill, Clock, CalendarDays, Wrench
+  ChevronRight, Plus, Trash2, Pill, Clock, CalendarDays, Wrench,
+  Cpu, RefreshCw, Link2, Link2Off
 } from "lucide-react";
 
 // Declared to fix the missing reference error shown in image_a35866.png
@@ -216,6 +217,14 @@ interface MedicationItem {
   times: string[];
 }
 
+interface IotDevice {
+  id: string;
+  name: string;
+  type: string;
+  status: "Connected" | "Disconnected";
+  lastSynced: string;
+}
+
 export default function ProfilePage() {
   const [profile, setProfile] = useState({
     name: "User",
@@ -255,6 +264,11 @@ export default function ProfilePage() {
     { id: 'activeMinutes', label: 'Active time', unit: 'min / day', icon: <Activity size={16} className="text-orange-800" />, color: 'bg-orange-300' }
   ]);
 
+  const [devices, setDevices] = useState<IotDevice[]>([
+    { id: "dev-1", name: "Fitbit Charge 6", type: "Smart Watch", status: "Connected", lastSynced: "5 mins ago" },
+    { id: "dev-2", name: "Withings Body Scan", type: "Smart Scale", status: "Connected", lastSynced: "1 hour ago" }
+  ]);
+
   const [prefs, setPrefs] = useState({
     notifications: true,
     weeklyReport: true,
@@ -276,6 +290,10 @@ export default function ProfilePage() {
   const [newMedManualFrequency, setNewMedManualFrequency] = useState('');
   const [newMedTimes, setNewMedTimes] = useState<string[]>(["08:00"]);
 
+  const [isPairingDevice, setIsPairingDevice] = useState(false);
+  const [newDeviceName, setNewDeviceName] = useState('');
+  const [newDeviceType, setNewDeviceType] = useState('Smart Watch');
+
   const updateProfile = (key: string) => (val: string) =>
     setProfile(p => ({ ...p, [key]: val }));
 
@@ -296,6 +314,31 @@ export default function ProfilePage() {
 
   const deleteMedication = (id: string) => {
     setMedications(prev => prev.filter(m => m.id !== id));
+  };
+
+  const toggleDeviceStatus = (id: string) => {
+    setDevices(prev => prev.map(d => {
+      if (d.id === id) {
+        const newStatus = d.status === "Connected" ? "Disconnected" : "Connected";
+        return { ...d, status: newStatus, lastSynced: newStatus === "Connected" ? "Just now" : "N/A" };
+      }
+      return d;
+    }));
+  };
+
+  const removeDevice = (id: string) => {
+    setDevices(prev => prev.filter(d => d.id !== id));
+  };
+
+  const handlePairDevice = () => {
+    if (!newDeviceName) return;
+    const uniqueId = `dev-${Date.now()}`;
+    setDevices(prev => [
+      ...prev,
+      { id: uniqueId, name: newDeviceName, type: newDeviceType, status: "Connected", lastSynced: "Just now" }
+    ]);
+    setIsPairingDevice(false);
+    setNewDeviceName('');
   };
 
   const updatePref = (key: string) => (val: boolean) =>
@@ -383,12 +426,12 @@ export default function ProfilePage() {
           </div>
         </header>
 
-        {/* Top User Card Row (Updated to gorgeous Sky Blue Palette) */}
+        {/* Top User Card Row (Sky Blue Palette) */}
         <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-sky-100 to-sky-200 border border-sky-300/60 shadow-md">
           <div className="flex items-center gap-5">
             <div
               className="w-20 h-20 rounded-full flex items-center justify-center text-white font-black text-2xl flex-shrink-0 border-2 border-white shadow-md"
-              style={{ background: SKYBLUE_BG }} // Using the variable from image_a35866.png
+              style={{ background: SKYBLUE_BG }}
             >
               {profile.name.charAt(0).toUpperCase()}
             </div>
@@ -682,6 +725,108 @@ export default function ProfilePage() {
                   />
                 );
               })}
+            </div>
+          )}
+        </div>
+
+        {/* Connected IoT Devices Section */}
+        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-teal-100 to-teal-200 border border-teal-300/50 shadow-md">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Cpu size={16} className="text-teal-900 stroke-[2.5]" />
+              <h3 className="text-sm uppercase tracking-[0.18em] text-teal-900 font-black">IoT & Wearables</h3>
+            </div>
+            {!isPairingDevice && (
+              <button
+                onClick={() => setIsPairingDevice(true)}
+                className="flex items-center gap-1.5 text-teal-900 hover:bg-teal-300/50 transition-colors px-3 py-1.5 rounded-lg bg-white/90 border border-teal-300/40 text-sm font-bold shadow-sm"
+              >
+                <Plus size={16} />
+                <span>Pair Device</span>
+              </button>
+            )}
+          </div>
+
+          {isPairingDevice ? (
+            <div className="space-y-4 bg-white/80 p-4 rounded-2xl border border-teal-300/50 shadow-inner">
+              <div>
+                <label className="block text-sm font-bold text-teal-900 mb-1">Device Name / Model</label>
+                <input
+                  type="text"
+                  value={newDeviceName}
+                  onChange={(e) => setNewDeviceName(e.target.value)}
+                  placeholder="e.g., Apple Watch Series 9, Oura Ring"
+                  className="w-full bg-white text-gray-900 border border-gray-300 placeholder-gray-400 rounded-lg px-3 py-2 focus:border-teal-600 focus:outline-none text-sm shadow-xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-teal-900 mb-1">Device Type</label>
+                <select
+                  value={newDeviceType}
+                  onChange={(e) => setNewDeviceType(e.target.value)}
+                  className="w-full bg-white text-gray-900 border border-gray-300 rounded-lg px-2 py-2 focus:border-teal-600 focus:outline-none text-sm h-[38px] font-medium shadow-xs"
+                >
+                  <option value="Smart Watch">Smart Watch / Fitness Tracker</option>
+                  <option value="Smart Scale">Smart Scale</option>
+                  <option value="Blood Pressure Monitor">Blood Pressure Monitor</option>
+                  <option value="Continuous Glucose Monitor">Continuous Glucose Monitor (CGM)</option>
+                  <option value="Smart Ring">Smart Ring</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-1">
+                <button
+                  onClick={() => setIsPairingDevice(false)}
+                  className="text-gray-600 hover:text-gray-900 transition-colors px-4 py-2 text-sm font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handlePairDevice}
+                  disabled={!newDeviceName}
+                  className={`px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white font-bold rounded-lg transition-colors text-sm shadow-sm ${!newDeviceName ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  Connect & Sync
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white/40 p-2.5 rounded-2xl border border-teal-200/50 space-y-2">
+              {devices.length === 0 ? (
+                <p className="text-center py-4 text-xs font-semibold text-teal-950/60">No automated IoT trackers synchronized yet.</p>
+              ) : (
+                devices.map(dev => (
+                  <div key={dev.id} className="flex items-center justify-between bg-white/70 border border-teal-100/50 p-3 rounded-xl shadow-xs group">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-black text-gray-900 truncate">{dev.name}</p>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-md font-black border uppercase tracking-wider ${dev.status === "Connected" ? "bg-emerald-100 border-emerald-200 text-emerald-800" : "bg-gray-100 border-gray-200 text-gray-500"}`}>
+                          {dev.status}
+                        </span>
+                      </div>
+                      <p className="text-xs font-semibold text-teal-950/60 mt-0.5">{dev.type} • <span className="italic">Last sync: {dev.lastSynced}</span></p>
+                    </div>
+
+                    <div className="flex items-center gap-2 ml-4">
+                      <button
+                        onClick={() => toggleDeviceStatus(dev.id)}
+                        title={dev.status === "Connected" ? "Disconnect device" : "Reconnect device"}
+                        className={`p-1.5 rounded-lg border transition-all shadow-xs ${dev.status === "Connected" ? "bg-amber-50 text-amber-600 border-amber-200 hover:bg-amber-100" : "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"}`}
+                      >
+                        {dev.status === "Connected" ? <Link2Off size={14} /> : <Link2 size={14} />}
+                      </button>
+                      <button
+                        onClick={() => removeDevice(dev.id)}
+                        title="Unpair device completely"
+                        className="text-red-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 sm:opacity-0 group-hover:opacity-100 transition-all duration-200"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>

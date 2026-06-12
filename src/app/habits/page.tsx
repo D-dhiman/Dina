@@ -328,20 +328,20 @@ export default function HabitsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
           
           {/* Dailies Master Showcase Card Box */}
-          <section className="bg-sky-50/60 border border-sky-100 rounded-[32px] p-6 lg:p-8 shadow-sm backdrop-blur-sm">
+          <section className="bg-[#A6C7F2] border noise-bg border-sky-100 rounded-[32px] p-6 lg:p-8 shadow-sm backdrop-blur-sm">
             <div className="flex justify-between items-center mb-6 pb-4 border-b border-sky-100">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-sky-700 rounded-2xl text-white shadow-md shadow-sky-700/10">
+              <div className=" flex items-center gap-3">
+                <div className="z-10 p-2.5 bg-sky-700 rounded-2xl text-white shadow-md shadow-sky-700/10">
                   <CalendarDays size={22} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-sky-950">Dailies</h2>
-                  <p className="text-xs text-sky-700 font-medium mt-0.5">
+                  <h2 className="z-10 text-xl font-bold text-sky-1000">Dailies</h2>
+                  <p className="z-10 text-xs text-sky-900 font-medium mt-0.5">
                     {dailies.filter(d => d.status !== 'neutral').length}/{dailies.length} Completed
                   </p>
                 </div>
               </div>
-              <Link href="/dailies">
+              <Link href="/dailies" className="z-10">
                 <button className="bg-sky-700 hover:bg-sky-800 text-white font-semibold py-1.5 px-4 rounded-xl flex items-center gap-1.5 text-sm transition-all shadow-sm shadow-sky-700/10 hover:shadow-md active:scale-95">
                   <Plus size={16} />
                   <span>Add Daily</span>
@@ -400,20 +400,20 @@ export default function HabitsPage() {
           </section>
 
           {/* Habits Master Showcase Card Box */}
-          <section className="bg-emerald-50/60 border border-sky-100 rounded-[32px] p-6 lg:p-8 shadow-sm backdrop-blur-sm">
+          <section className="bg-[#AED27D] noise-bg border border-sky-100 rounded-[32px] p-6 lg:p-8 shadow-sm backdrop-blur-sm">
             <div className="flex justify-between items-center mb-6 pb-4 border-b border-sky-100">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-emerald-700 rounded-2xl text-white shadow-md shadow-emerald-700/10">
+                <div className="p-2.5 bg-emerald-700 rounded-2xl text-white shadow-md shadow-emerald-700/10 z-10">
                   <Sparkles size={22} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-emerald-950">Habits</h2>
-                  <p className="text-xs text-emerald-700 font-medium mt-0.5">
+                  <h2 className="text-xl font-bold text-emerald-950 z-10">Habits</h2>
+                  <p className="text-xs text-emerald-930 font-medium mt-0.5 z-10">
                     {habits.filter(h => h.status !== 'neutral').length}/{habits.length} Tracked Today
                   </p>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 z-10">
                 <Link href="/habitadd">
                   <button className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-1.5 px-4 rounded-xl flex items-center gap-1.5 text-sm transition-all shadow-sm shadow-emerald-700/10 hover:shadow-md active:scale-95">
                     <Plus size={16} />

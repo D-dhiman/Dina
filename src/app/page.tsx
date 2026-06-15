@@ -28,7 +28,7 @@ export default function WelcomePage() {
         {/* Buttons */}
         <div className="flex flex-col gap-3 justify-center flex-wrap">
           <Link
-            href="/dashboard"
+            href="/login"
             className="dina-button"
           >
             Login

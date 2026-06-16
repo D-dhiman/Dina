@@ -55,7 +55,7 @@ export default function WelcomePage() {
         <div className="flex flex-col gap-1 justify-center flex-wrap mb-17">
           <p className="dina-heading">DINA-AI</p>
           <p className="dina-catchphrase">
-            {t("catchphrase")}
+            {t("your ayurvedic assistant powered by AI  ")}
           </p>
         </div>
 
@@ -67,12 +67,12 @@ export default function WelcomePage() {
           >
             {t("login")}
           </Link>
-          <Link
+          {/* <Link
             href="/dashboard"
             className="dina-button"
           >
             {t("continueGuest")}
-          </Link>
+          </Link> */}
         </div>
       </div>
     </main>

@@ -84,7 +84,7 @@ export default function HealthCarousel() {
   const slide = slides[current];
 
   return (
-    <div className="bg-[#0d1f14] rounded-xl border border-[#1a3a22] p-4 w-full select-none overflow-hidden">
+    <div className="bg-[#0d1f14] rounded-xl border border-[#1a3a22] p-4 w-full h-full select-none overflow-hidden">
 
       {/* Slide content */}
       <div

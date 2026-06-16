@@ -5,15 +5,9 @@ export default function TwinPage() {
     <div className="min-h-screen bg-[#f8f9f5] pb-24">
     <main className="min-h-screen px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-8 rounded-3xl bg-white px-6 py-8 shadow-sm ring-1 ring-slate-200 sm:px-10">
-          <h1 className="text-2xl font-semibold text-slate-900">Health Twin</h1>
-          <p className="mt-3 max-w-3xl text-sm text-slate-600">
-            A personal wellness companion that can later visualize your avatar while predicting key health signals and recommending seasonally aligned nourishment.
-          </p>
-        </div>
 
         <div className="grid gap-6 lg:grid-cols-[440px_minmax(0,1fr)]">
-          <section className="rounded-3xl bg-slate-950 p-6 text-slate-100 shadow-sm ring-1 ring-slate-900/10">
+          <section className="rounded-3xl bg-slate-950 text-slate-100 shadow-sm ring-1 ring-slate-900/10">
             <div className="flex h-full flex-col rounded-3xl border border-slate-800 bg-slate-950/90 p-8">
               <div className="mb-5 flex items-center justify-between">
                 <div>
@@ -128,8 +122,8 @@ export default function TwinPage() {
                 </div>
               </div>
             </div>
-
-            <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+          </section>
+          <div className="rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
               <h2 className="text-lg font-semibold text-slate-900">Action items</h2>
               <p className="mt-3 text-sm text-slate-600">
                 Use this space for quick follow-ups, like daily self-check prompts, weather-aware advice, and personalized nutrition notes.
@@ -145,7 +139,6 @@ export default function TwinPage() {
                 </div>
               </div>
             </div>
-          </section>
         </div>
       </div>
     </main>

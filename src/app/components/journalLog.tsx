@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const inter = { style: { fontFamily: "var(--font-inter), system-ui, sans-serif" } };
 
@@ -47,10 +47,7 @@ function StressSlider({ value, onChange }: { value: number; onChange: (v: number
         <span className="text-base font-medium transition-colors" style={{ color }}>{label}</span>
       </div>
       <div className="relative h-3 rounded-full bg-gray-100 border border-gray-200">
-        <div
-          className="h-full rounded-full transition-all duration-200"
-          style={{ width: `${pct}%`, background: color }}
-        />
+        <div className="h-full rounded-full transition-all duration-200" style={{ width: `${pct}%`, background: color }} />
         <input
           type="range" min={1} max={10} step={1} value={value}
           onChange={(e) => onChange(Number(e.target.value))}
@@ -105,8 +102,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const inputCls =
-  "bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-base text-gray-800 focus:outline-none focus:border-emerald-400";
+const inputCls = "bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-base text-gray-800 focus:outline-none focus:border-emerald-400";
 
 const exerciseTypes = ["light", "moderate", "heavy"] as const;
 type ExerciseType = (typeof exerciseTypes)[number];
@@ -143,21 +139,146 @@ export default function JournalLog() {
   const [habitsDone, setHabitsDone]   = useState(false);
   const [dailiesDone, setDailiesDone] = useState(false);
   const [notes, setNotes]             = useState("");
+  const [saving, setSaving]           = useState(false);
+  const [saved, setSaved]             = useState(false);
+  const [error, setError]             = useState("");
 
   const updateMeal = (meal: keyof typeof meals, field: string, value: string) =>
     setMeals((prev) => ({ ...prev, [meal]: { ...prev[meal], [field]: value } }));
+
+  // ── Load today's existing log ──────────────────────────────────────
+  useEffect(() => {
+    async function loadTodayLog() {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`/api/daily-logs?date=${today}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.logs?.[0]) {
+          const log = data.logs[0];
+          if (log.wake_time) setWakeTime(log.wake_time.slice(0, 5));
+          if (log.sleep_time) setSleepTime(log.sleep_time.slice(0, 5));
+          if (log.sleep_quality) setSleepQuality(log.sleep_quality);
+          if (log.steps) setSteps(log.steps.toString());
+          if (log.exercise_duration) setExerciseDuration(log.exercise_duration.toString());
+          if (log.exercise_type) setExerciseType(log.exercise_type as ExerciseType);
+          if (log.mood_score) setMood(log.mood_score);
+          if (log.stress_level) setStress(log.stress_level);
+          if (log.notes) setNotes(log.notes);
+          if (log.habits_completed?.done !== undefined) setHabitsDone(log.habits_completed.done);
+          if (log.dailies_completed?.done !== undefined) setDailiesDone(log.dailies_completed.done);
+          if (log.meal_details) {
+            setMeals({
+              breakfast: {
+                time: log.meal_details.breakfast?.time || "08:30",
+                calories: log.meal_details.breakfast?.calories?.toString() || "",
+                healthScore: log.meal_details.breakfast?.health_score?.toString() || "",
+              },
+              lunch: {
+                time: log.meal_details.lunch?.time || "13:00",
+                calories: log.meal_details.lunch?.calories?.toString() || "",
+                healthScore: log.meal_details.lunch?.health_score?.toString() || "",
+              },
+              dinner: {
+                time: log.meal_details.dinner?.time || "19:30",
+                calories: log.meal_details.dinner?.calories?.toString() || "",
+                healthScore: log.meal_details.dinner?.health_score?.toString() || "",
+              },
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load today's log", err);
+      }
+    }
+    loadTodayLog();
+  }, []);
+
+  // ── Save log ───────────────────────────────────────────────────────
+  async function handleSave() {
+    setSaving(true);
+    setError("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/daily-logs", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          log_date: date,
+          wake_time: wakeTime,
+          sleep_time: sleepTime,
+          sleep_quality: sleepQuality || null,
+          steps: steps ? parseInt(steps) : null,
+          exercise_duration: exerciseDuration ? parseInt(exerciseDuration) : null,
+          exercise_type: exerciseType,
+          meal_details: {
+            breakfast: {
+              time: meals.breakfast.time,
+              calories: meals.breakfast.calories ? parseInt(meals.breakfast.calories) : null,
+              health_score: meals.breakfast.healthScore ? parseInt(meals.breakfast.healthScore) : null,
+            },
+            lunch: {
+              time: meals.lunch.time,
+              calories: meals.lunch.calories ? parseInt(meals.lunch.calories) : null,
+              health_score: meals.lunch.healthScore ? parseInt(meals.lunch.healthScore) : null,
+            },
+            dinner: {
+              time: meals.dinner.time,
+              calories: meals.dinner.calories ? parseInt(meals.dinner.calories) : null,
+              health_score: meals.dinner.healthScore ? parseInt(meals.dinner.healthScore) : null,
+            },
+          },
+          mood_score: mood,
+          stress_level: stress,
+          habits_completed: { done: habitsDone },
+          dailies_completed: { done: dailiesDone },
+          notes: notes,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.log) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+        setWakeTime("07:00");
+        setSleepTime("23:00");
+        setSleepQuality(0);
+        setSteps("");
+        setExerciseDuration("");
+        setExerciseType("light");
+        setMeals({
+          breakfast: { time: "08:30", calories: "", healthScore: "" },
+          lunch:     { time: "13:00", calories: "", healthScore: "" },
+          dinner:    { time: "19:30", calories: "", healthScore: "" },
+        });
+        setMood(3);
+        setStress(5);
+        setHabitsDone(false);
+        setDailiesDone(false);
+        setNotes("");
+      } else {
+        setError("Failed to save. Please try again.");
+      }
+    } catch (err) {
+      console.error("Failed to save log", err);
+      setError("Something went wrong.");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   const divider      = "border-t border-gray-100 pt-6 mt-6";
   const sectionLabel = "text-base font-bold text-gray-700 uppercase tracking-widest mb-4";
 
   return (
-    <div
-      className="bg-white border border-gray-200 rounded-3xl px-8 py-8 m-2"
-      style={inter.style}
-    >
+    <div className="bg-white border border-gray-200 rounded-3xl px-8 py-8 m-2" style={inter.style}>
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-5 gap-20 ">
+      <div className="flex items-center justify-between mb-5 gap-20">
         <h2 className="text-2xl font-bold text-gray-900">Daily log</h2>
         <input
           type="date" value={date}
@@ -274,13 +395,9 @@ export default function JournalLog() {
               <span className="text-base font-medium text-gray-700">{label}</span>
               <button
                 onClick={() => set(!value)}
-                className={`w-12 h-7 rounded-full transition-colors relative flex-shrink-0 ${
-                  value ? "bg-emerald-500" : "bg-gray-200"
-                }`}
+                className={`w-12 h-7 rounded-full transition-colors relative flex-shrink-0 ${value ? "bg-emerald-500" : "bg-gray-200"}`}
               >
-                <span className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${
-                  value ? "left-6" : "left-1"
-                }`} />
+                <span className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all ${value ? "left-6" : "left-1"}`} />
               </button>
             </div>
           ))}
@@ -294,13 +411,25 @@ export default function JournalLog() {
           rows={4} value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="How was your day? Anything on your mind..."
-          className={inputCls + " resize-none"}
+          className={inputCls + " resize-none w-full"}
         />
       </div>
 
+      {/* Error */}
+      {error && (
+        <p className="px-1 mt-3 text-sm text-red-500 font-medium">{error}</p>
+      )}
+
+      {/* Save button */}
       <div className="px-1 mt-6">
-        <button className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white text-base font-bold rounded-2xl transition">
-          Save log
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className={`w-full py-3.5 text-white text-base font-bold rounded-2xl transition ${
+            saved ? "bg-emerald-400" : "bg-emerald-600 hover:bg-emerald-700"
+          } ${saving ? "opacity-60 cursor-not-allowed" : ""}`}
+        >
+          {saving ? "Saving..." : saved ? "✓ Saved!" : "Save log"}
         </button>
       </div>
 

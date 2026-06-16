@@ -1,181 +1,250 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "../components/navbar";
 import JournalLog from "../components/journalLog";
-import {Flame, ChevronDown, CheckCheckIcon} from 'lucide-react';
-import { useRouter } from "next/navigation";
-
+import { Flame, ChevronDown } from "lucide-react";
 import {
-  Chart,
-  CategoryScale,
-  LinearScale,
-  LineController,
-  LineElement,
-  PointElement,
-  BarController,
-  BarElement,
-  Tooltip,
-  Legend,
-  Filler,
+  Chart, CategoryScale, LinearScale, LineController, LineElement,
+  PointElement, BarController, BarElement, Tooltip, Legend, Filler,
 } from "chart.js";
 import HealthCarousel from "../components/HealthCarousel";
 
 Chart.register(
-  CategoryScale,
-  LinearScale,
-  LineController,
-  LineElement,
-  PointElement,
-  BarController,
-  BarElement,
-  Tooltip,
-  Legend,
-  Filler,
+  CategoryScale, LinearScale, LineController, LineElement,
+  PointElement, BarController, BarElement, Tooltip, Legend, Filler
 );
 
+function authHeaders() {
+  const token = localStorage.getItem("token");
+  return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+}
 
-const sections = [
-  {
-    title: "Habits",
-    description: "Build and maintain your daily habits",
-    pill: "3 / 5 done",
-    color: "bg-[#FFFFFF] text-black-700",
-    bgColor: "#8fa96b",
-    borderColor: "transparent",
-    shape:"triangle",
-  },
-  {
-    title: "Dailies",
-    description: "Your recurring daily tasks and check-ins",
-    pill: "2 pending",
-    color: "bg-[#FFFFFF] text-black-700",
-    bgColor: "#8fa8c8",
-    borderColor: "transparent",
-    shape:"star",
-  },
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+
+function getWeekDays(currentDate: string) {
+  const date = new Date(currentDate);
+  const day = date.getDay(); // 0 = Sunday
+  const monday = new Date(date);
+  monday.setDate(date.getDate() - ((day + 6) % 7)); // get Monday
+
+  const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  return labels.map((label, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return {
+      label,
+      day: d.getDate().toString(),
+      fullDate: d.toISOString().split("T")[0],
+      events: [] as { label: string; color: string }[],
+    };
+  });
+}
+
+interface Plan {
+  id: string;
+  plan_date: string;
+  label: string;
+  color: string;
+}
+
+function authHeadersLocal() {
+  const token = localStorage.getItem("token");
+  return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+}
+
+const colorOptions = [
+  "bg-rose-400", "bg-indigo-400", "bg-emerald-400",
+  "bg-sky-400", "bg-orange-400", "bg-fuchsia-400", "bg-lime-400",
 ];
 
-const weekDays = [
-  {
-    label: "Mon",
-    day: "11",
-    events: [
-      { label: "Doctor visit", color: "bg-rose-400" },
-      { label: "Meditation", color: "bg-indigo-400" },
-    ],
-  },
-  {
-    label: "Tue",
-    day: "12",
-    events: [
-      { label: "Therapy call", color: "bg-emerald-400" },
-    ],
-  },
-  {
-    label: "Wed",
-    day: "13",
-    events: [
-      { label: "Gym session", color: "bg-sky-400" },
-      { label: "Supplements", color: "bg-orange-400" },
-    ],
-  },
-  {
-    label: "Thu",
-    day: "14",
-    events: [],
-  },
-  {
-    label: "Fri",
-    day: "15",
-    events: [
-      { label: "Nutrition review", color: "bg-fuchsia-400" },
-    ],
-  },
-  {
-    label: "Sat",
-    day: "16",
-    events: [],
-  },
-  {
-    label: "Sun",
-    day: "17",
-    events: [
-      { label: "Rest day", color: "bg-lime-400" },
-    ],
-  },
-];
+function WeeklyPlanner({ currentDate, todayLabel }: { currentDate: string; todayLabel: string }) {
+  const [selectedDay, setSelectedDay] = useState(todayLabel);
+  const weekDays = getWeekDays(currentDate);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [isAdding, setIsAdding] = useState(false);
+  const [newLabel, setNewLabel] = useState("");
+  const [newColor, setNewColor] = useState(colorOptions[0]);
+  const [newDate, setNewDate] = useState(currentDate); // ← new: editable date
 
-function WeeklyPlanner() {
-  const [selectedDay, setSelectedDay] = useState("Tue");
+  const selectedDate = weekDays.find(d => d.label === selectedDay)?.fullDate;
+
+  // When opening the add form, default to the currently selected day
+  useEffect(() => {
+    if (isAdding && selectedDate) setNewDate(selectedDate);
+  }, [isAdding]);
+
+  useEffect(() => {
+    async function fetchPlans() {
+      if (weekDays.length === 0) return;
+      const start = weekDays[0].fullDate;
+      const end = weekDays[6].fullDate;
+      try {
+        const res = await fetch(`/api/calendar-plans?start=${start}&end=${end}`, {
+          headers: authHeadersLocal(),
+        });
+        const data = await res.json();
+        setPlans(data.plans || []);
+      } catch (err) {
+        console.error("Failed to load plans", err);
+      }
+    }
+    fetchPlans();
+  }, [currentDate]);
+
+  const plansForDay = (fullDate: string) => plans.filter(p => p.plan_date.split("T")[0] === fullDate);
+
+  async function handleAddPlan() {
+    if (!newLabel || !newDate) return;
+    try {
+      const res = await fetch("/api/calendar-plans", {
+        method: "POST",
+        headers: authHeadersLocal(),
+        body: JSON.stringify({ plan_date: newDate, label: newLabel, color: newColor }),
+      });
+      const data = await res.json();
+      if (data.plan) {
+        // Only add to visible plans if it falls within the current week
+        const start = weekDays[0]?.fullDate;
+        const end = weekDays[6]?.fullDate;
+        if (newDate >= start && newDate <= end) {
+          setPlans(prev => [...prev, data.plan]);
+        }
+      }
+      setNewLabel("");
+      setNewColor(colorOptions[0]);
+      setIsAdding(false);
+    } catch (err) {
+      console.error("Failed to add plan", err);
+    }
+  }
+
+  async function handleDeletePlan(id: string) {
+    setPlans(prev => prev.filter(p => p.id !== id));
+    try {
+      await fetch(`/api/calendar-plans/${id}`, { method: "DELETE", headers: authHeadersLocal() });
+    } catch (err) {
+      console.error("Failed to delete plan", err);
+    }
+  }
 
   return (
     <div className="mt-8 w-full rounded-3xl p-6 text-white relative overflow-hidden"
-      style={{
-        backgroundImage: "url('/weeklyplanerbg.png')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-      }}>
-        {/* Dark overlay over img */}
-      <div className="absolute inset-0 bg-black/10 rounded-3xl z-0" /> 
-      <div className="flex items-center justify-between gap-4 pb-4">
+      style={{ backgroundImage: "url('/weeklyplanerbg.png')", backgroundSize: "cover", backgroundPosition: "center" }}>
+      <div className="absolute inset-0 bg-black/10 rounded-3xl z-0" />
+
+      <div className="flex items-center justify-between gap-4 pb-4 relative z-10">
         <div>
           <p className="text-md text-slate-300">Weekly planner</p>
           <p className="text-xl font-semibold text-white">Your health agenda</p>
         </div>
+        <button
+          onClick={() => setIsAdding(true)}
+          className="text-xs font-bold bg-white/15 hover:bg-white/25 px-3 py-1.5 rounded-full border border-white/20 transition"
+        >
+          + Add plan
+        </button>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-3">
+      <div className="flex gap-3 overflow-x-auto pb-3 relative z-10">
         {weekDays.map((day) => {
           const isSelected = day.label === selectedDay;
+          const isToday = day.label === todayLabel;
+          const dayPlans = plansForDay(day.fullDate);
           return (
-            <button
-              key={day.label}
-              onClick={() => setSelectedDay(day.label)}
-              style={{
-                backgroundColor: isSelected ? 'rgba(0, 0, 0, 0.48)' : 'rgba(0, 0, 0, 0.42)',
-                backdropFilter: 'blur(6px)',
-                WebkitBackdropFilter: 'blur(6px)',
-                border: '1px solid rgba(255,255,255,0.06)',
-              }}
-              className={`relative flex-shrink-0 rounded-3xl p-4 h-48 text-left transition-all duration-300 ease-out ${isSelected ? 'flex-[1.4] shadow-2xl' : 'flex-1 min-w-[88px]'}`}
-            >
+            <div
+                key={day.label}
+                onClick={() => setSelectedDay(day.label)}
+                role="button"
+                tabIndex={0}
+                style={{ backgroundColor: isSelected ? "rgba(0,0,0,0.48)" : "rgba(0,0,0,0.42)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", border: isToday ? "1px solid rgba(255,255,255,0.3)" : "1px solid rgba(255,255,255,0.06)" }}
+                className={`relative flex-shrink-0 rounded-3xl p-4 h-48 text-left transition-all duration-300 ease-out cursor-pointer ${isSelected ? "flex-[1.4] shadow-2xl" : "flex-1 min-w-[88px]"}`}
+              >
               <div className="flex items-start justify-between gap-3">
-                <span className="text-xs uppercase tracking-[0.18em] text-white/90">
-                  {day.label}
-                </span>
-                <span className={`rounded-2xl px-2 py-1 text-sm font-semibold ${isSelected ? 'bg-white/20 text-white' : 'bg-white/10 text-white/90'}`}>
+                <span className="text-xs uppercase tracking-[0.18em] text-white/90">{day.label}</span>
+                <span className={`rounded-2xl px-2 py-1 text-sm font-semibold ${isToday ? "bg-white text-black" : isSelected ? "bg-white/20 text-white" : "bg-white/10 text-white/90"}`}>
                   {day.day}
                 </span>
               </div>
-
               <div className="mt-3 flex gap-2">
-                {day.events.length > 0 ? (
-                  day.events.map((event) => (
-                    <span key={event.label} className={`h-2.5 w-2.5 rounded-full ${event.color}`} />
-                  ))
-                ) : (
-                  <span className="text-[11px] text-white/70">No plans</span>
-                )}
+                {dayPlans.length > 0
+                  ? dayPlans.map(p => <span key={p.id} className={`h-2.5 w-2.5 rounded-full ${p.color}`} />)
+                  : <span className="text-[11px] text-white/70">{isToday ? "Today" : "No plans"}</span>
+                }
               </div>
-
-              {isSelected && day.events.length > 0 && (
+              {isSelected && dayPlans.length > 0 && (
                 <div className="mt-4 space-y-2">
-                  {day.events.map((event) => (
-                    <div key={event.label} className="flex items-center gap-3 rounded-3xl bg-white/10 px-3 py-2 text-sm text-white">
-                      <span className={`h-2.5 w-2.5 rounded-full ${event.color}`} />
-                      <span>{event.label}</span>
+                  {dayPlans.map(p => (
+                    <div key={p.id} className="flex items-center justify-between gap-2 rounded-3xl bg-white/10 px-3 py-2 text-sm text-white">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${p.color}`} />
+                        <span className="truncate">{p.label}</span>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeletePlan(p.id); }}
+                        className="text-white/60 hover:text-white flex-shrink-0"
+                      >
+                        ✕
+                      </button>
                     </div>
                   ))}
                 </div>
               )}
-            </button>
+            </div>
           );
         })}
       </div>
+
+      {isAdding && (
+        <div className="relative z-10 mt-4 bg-white/95 rounded-2xl p-4 text-gray-900 shadow-xl">
+          <p className="text-sm font-bold mb-2">Add a plan</p>
+
+          <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Date</label>
+          <input
+            type="date"
+            value={newDate}
+            min={currentDate}
+            onChange={(e) => setNewDate(e.target.value)}
+            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm mb-3 mt-1 focus:outline-none focus:border-emerald-400"
+          />
+
+          <label className="text-xs font-bold text-gray-500 uppercase tracking-wide">Plan</label>
+          <input
+            type="text"
+            value={newLabel}
+            onChange={(e) => setNewLabel(e.target.value)}
+            placeholder="e.g. Doctor visit"
+            className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm mb-3 mt-1 focus:outline-none focus:border-emerald-400"
+          />
+
+          <div className="flex gap-2 mb-3">
+            {colorOptions.map(c => (
+              <button
+                key={c}
+                onClick={() => setNewColor(c)}
+                className={`h-6 w-6 rounded-full ${c} ${newColor === c ? "ring-2 ring-offset-2 ring-gray-400" : ""}`}
+              />
+            ))}
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setIsAdding(false)} className="text-sm font-bold text-gray-500 px-3 py-1.5">Cancel</button>
+            <button onClick={handleAddPlan} disabled={!newLabel || !newDate} className="text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg disabled:opacity-50">Add</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+interface Medication { id: string; name: string; dose: string; frequency: string; consumption_time: string; }
+interface Habit { id: string; habit_name: string; streak_count: number; }
 
 export default function DashboardPage() {
   const habitContinuityChartRef = useRef<HTMLCanvasElement>(null);
@@ -183,10 +252,71 @@ export default function DashboardPage() {
   const [isJournalOpen, setIsJournalOpen] = useState(false);
   const router = useRouter();
 
+  const [userName, setUserName] = useState("");
+  const [dayStreak, setDayStreak] = useState(0);
+  const [medications, setMedications] = useState<Medication[]>([]);
+  const [habits, setHabits] = useState<Habit[]>([]);
+  const [dailies, setDailies] = useState<Habit[]>([]);
+  const [checkedMeds, setCheckedMeds] = useState<Record<string, boolean>>({});
+  const [checkedHabits, setCheckedHabits] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(true);
+
+  const [currentDate, setCurrentDate] = useState("");
+  const [todayLabel, setTodayLabel] = useState("Mon");
+  const [currentTime, setCurrentTime] = useState("");
+
+  // ── Fetch dashboard data ──────────────────────────────────────────
   useEffect(() => {
+    async function fetchDashboard() {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) { router.push("/login"); return; }
+
+        const res = await fetch("/api/dashboard", { headers: authHeaders() });
+        if (res.status === 401) { router.push("/login"); return; }
+
+        const data = await res.json();
+        setUserName(data.user?.name?.split(" ")[0] || "");
+        setDayStreak(data.user?.day_streak || 0);
+        setMedications(data.medications || []);
+        setHabits(data.habits || []);
+        setDailies(data.dailies || []);
+      } catch (err) {
+        console.error("Failed to load dashboard", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchDashboard();
+  }, []);
+
+  // ── Charts ────────────────────────────────────────────────────────
+  useEffect(() => {
+    async function fetchDateTime() {
+      try {
+        const res = await fetch("http://localhost:8000/datetime/auto");
+        const data = await res.json();
+        setCurrentDate(data.date);           // "2026-06-15"
+        setCurrentTime(data.time);           // "14:32:00"
+        // Map day_of_week to short label
+        const dayMap: Record<string, string> = {
+          Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed",
+          Thursday: "Thu", Friday: "Fri", Saturday: "Sat", Sunday: "Sun",
+        };
+        setTodayLabel(dayMap[data.day_of_week] || "Mon");
+      } catch (err) {
+        // Fallback to browser date if API is down
+        const now = new Date();
+        const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        setCurrentDate(now.toISOString().split("T")[0]);
+        setTodayLabel(labels[now.getDay()]);
+      }
+    }
+
+    fetchDateTime();
+
     const habitChartCanvas = habitContinuityChartRef.current;
     const healthChartCanvas = healthOverviewChartRef.current;
-
     if (!habitChartCanvas || !healthChartCanvas) return;
 
     const habitCtx = habitChartCanvas.getContext("2d");
@@ -194,39 +324,23 @@ export default function DashboardPage() {
     if (!habitCtx || !healthCtx) return;
 
     const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-    const continuityData = [3, 4, 5, 4, 6, 7, 8];
-    const healthData = [78, 84, 82, 88, 90, 87, 92];
 
     const habitChart = new Chart(habitCtx, {
       type: "line",
       data: {
         labels,
-        datasets: [
-          {
-            label: "Habit continuity",
-            data: continuityData,
-            borderColor: "rgb(34, 197, 94)",
-            backgroundColor: "rgba(34, 197, 94, 0.15)",
-            fill: true,
-            tension: 0.35,
-            pointRadius: 4,
-          },
-        ],
+        datasets: [{
+          label: "Habit continuity",
+          data: [3, 4, 5, 4, 6, 7, 8],
+          borderColor: "rgb(34, 197, 94)",
+          backgroundColor: "rgba(34, 197, 94, 0.15)",
+          fill: true, tension: 0.35, pointRadius: 4,
+        }],
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { intersect: false, mode: "index" },
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            suggestedMax: 10,
-            ticks: { stepSize: 2 },
-          },
-        },
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { intersect: false, mode: "index" } },
+        scales: { y: { beginAtZero: true, suggestedMax: 10, ticks: { stepSize: 2 } } },
       },
     });
 
@@ -234,200 +348,248 @@ export default function DashboardPage() {
       type: "bar",
       data: {
         labels,
-        datasets: [
-          {
-            label: "Overall health score",
-            data: healthData,
-            backgroundColor: "rgba(59, 130, 246, 0.8)",
-            borderRadius: 12,
-            barPercentage: 0.65,
-          },
-        ],
+        datasets: [{
+          label: "Overall health score",
+          data: [78, 84, 82, 88, 90, 87, 92],
+          backgroundColor: "rgba(59, 130, 246, 0.8)",
+          borderRadius: 12, barPercentage: 0.65,
+        }],
       },
       options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: { intersect: false, mode: "index" },
-        },
-        scales: {
-          y: {
-            beginAtZero: true,
-            suggestedMax: 100,
-            ticks: { stepSize: 20 },
-          },
-        },
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { intersect: false, mode: "index" } },
+        scales: { y: { beginAtZero: true, suggestedMax: 100, ticks: { stepSize: 20 } } },
       },
     });
 
-    return () => {
-      habitChart.destroy();
-      healthChart.destroy();
-    };
-  }, []);
+    return () => { habitChart.destroy(); healthChart.destroy(); };
+  }, [loading]);
+
+  const habitsCompleted = Object.values(checkedHabits).filter(Boolean).length;
+  const dailiesPending = dailies.length - Object.values(checkedHabits).filter(Boolean).length;
+
+  const sections = [
+    {
+      title: "Habits",
+      description: "Build and maintain your daily habits",
+      pill: `${habitsCompleted} / ${habits.length} done`,
+      color: "bg-[#FFFFFF] text-black-700",
+      bgColor: "#8fa96b",
+      borderColor: "transparent",
+      shape: "triangle",
+      href: "/habits",
+    },
+    {
+      title: "Dailies",
+      description: "Your recurring daily tasks and check-ins",
+      pill: `${dailies.length} pending`,
+      color: "bg-[#FFFFFF] text-black-700",
+      bgColor: "#8fa8c8",
+      borderColor: "transparent",
+      shape: "star",
+      href: "/dailies",
+    },
+  ];
+
+  // Group medications by time of day
+  const morningMeds = medications.filter(m => {
+    const hour = parseInt(m.consumption_time?.slice(0, 2) || "0");
+    return hour < 12;
+  });
+  const afternoonMeds = medications.filter(m => {
+    const hour = parseInt(m.consumption_time?.slice(0, 2) || "0");
+    return hour >= 12 && hour < 17;
+  });
+  const eveningMeds = medications.filter(m => {
+    const hour = parseInt(m.consumption_time?.slice(0, 2) || "0");
+    return hour >= 17;
+  });
+
+  function formatTime(time: string) {
+    if (!time) return "";
+    const [h, m] = time.split(":");
+    const hour = parseInt(h);
+    const ampm = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${m} ${ampm}`;
+  }
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-[#f8f9f5]">
+      <p className="text-gray-500 font-medium">Loading...</p>
+    </div>
+  );
 
   return (
     <div className="min-h-screen px-4 sm:px-6 lg:px-8 bg-[#f8f9f5] pb-20">
       <main className="w-full min-h-screen py-10 px-4 sm:px-6 lg:px-8">
+
+        {/* Header */}
         <header className="flex items-center justify-between mb-12 border-b border-gray-100 pb-6">
           <div className="flex items-center gap-3">
             <div>
               <h1 className="text-3xl font-bold text-[#1e3a1e] tracking-tight flex items-center gap-2">
-                Good morning 
+                {getGreeting()}{userName ? `, ${userName}` : ""}
               </h1>
-              <p className="text-sm text-[#8a9485] font-medium mt-1">
-                Here's your overview for today
-              </p>
+              <p className="text-sm text-[#8a9485] font-medium mt-1">Here's your overview for today</p>
             </div>
             <span className="inline-block animate-wave [animation-duration:2s] text-4xl pb-2">👋</span>
           </div>
-          
           <div className="flex items-center gap-4">
-            {/* Streak Counter */}
             <div className="flex items-center gap-1 bg-[#fffbeb] border border-[#fef3c7] px-3 py-1.5 rounded-full shadow-sm">
               <Flame size={18} className="text-amber-500 fill-amber-500" />
-              <span className="text-sm font-bold text-amber-800">7</span>
+              <span className="text-sm font-bold text-amber-800">{dayStreak}</span>
             </div>
-            
-            {/* User Profile Circle Avatar */}
-            <div className="w-10 h-10 rounded-full bg-[#062e14] border border-[#14532d] flex items-center justify-center text-white font-semibold text-sm shadow-inner cursor-pointer select-none">
-              U
+            <div
+              onClick={() => router.push("/profile")}
+              className="w-10 h-10 rounded-full bg-[#062e14] border border-[#14532d] flex items-center justify-center text-white font-semibold text-sm shadow-inner cursor-pointer select-none"
+            >
+              {userName.charAt(0).toUpperCase() || "U"}
             </div>
           </div>
         </header>
 
-        <WeeklyPlanner />
+        {currentDate && <WeeklyPlanner currentDate={currentDate} todayLabel={todayLabel} />}
 
-        <div onClick={() => router.push("/habits")} className="mt-8 flex flex-col items-left justify-center gap-4 sm:flex-row cursor-pointer">
+        {/* Habits + Dailies cards */}
+        <div className="mt-8 flex flex-col items-left justify-center gap-4 sm:flex-row">
           {sections.map((s) => (
             <div
               key={s.title}
-              style={{
-                backgroundColor: s.bgColor,
-                borderColor: s.borderColor,
-              }}
-              className="w-full sm:w-1/2 border-1 rounded-3xl p-6 text-left relative overflow-hidden"
+              onClick={() => router.push(s.href)}
+              style={{ backgroundColor: s.bgColor, borderColor: s.borderColor }}
+              className="w-full sm:w-1/2 border-1 rounded-3xl p-6 text-left relative overflow-hidden cursor-pointer"
             >
               {s.shape === "triangle" && (
-                <div
-                  className="absolute -bottom-14 right-[-6px] w-40 h-40 opacity-40 rotate-[-15deg] "
-                  style={{
-                    width: 0,
-                    height: 0,
-                    borderLeft: "90px solid transparent",
-                    borderRight: "90px solid transparent",
-                    borderTop: "150px solid rgba(0,0,0,0.25)",
-                  }}
-                />
+                <div className="absolute -bottom-14 right-[-6px] w-40 h-40 opacity-40 rotate-[-15deg]"
+                  style={{ width: 0, height: 0, borderLeft: "90px solid transparent", borderRight: "90px solid transparent", borderTop: "150px solid rgba(0,0,0,0.25)" }} />
               )}
               {s.shape === "star" && (() => {
                 const cx = 50, cy = 50, points = 10;
                 const angle = Math.PI / points;
                 const pts = Array.from({ length: points * 2 }, (_, i) => {
-                  const r = i % 2 === 0 ? 50 : 28;  // outer=50, inner=28 (higher = more filled)
+                  const r = i % 2 === 0 ? 50 : 28;
                   const a = i * angle - Math.PI / 2;
                   return `${cx + r * Math.cos(a)},${cy + r * Math.sin(a)}`;
                 }).join(" ");
-
                 return (
-                  <svg
-                    className="absolute -bottom-[-12px] -right-7 opacity-30 rotate-45"
-                    width="180" height="180" viewBox="0 0 100 100"
-                  >
-                    <polygon points={pts} fill=" rgba(0, 0, 0, 0.42)" />
+                  <svg className="absolute -bottom-[-12px] -right-7 opacity-30 rotate-45" width="180" height="180" viewBox="0 0 100 100">
+                    <polygon points={pts} fill="rgba(0,0,0,0.42)" />
                   </svg>
                 );
               })()}
-              <h2 className="font-semibold text-gray-900 text-lg mb-2">
-                {s.title}
-              </h2>
+              <h2 className="font-semibold text-gray-900 text-lg mb-2">{s.title}</h2>
               <p className="text-sm text-gray-700 mb-4">{s.description}</p>
-              <span className={`text-xs px-3 py-2 border border-gray-300 rounded-full ${s.color}`}>
-                {s.pill}
-              </span>
+              <span className={`text-xs px-3 py-2 border border-gray-300 rounded-full ${s.color}`}>{s.pill}</span>
             </div>
           ))}
         </div>
 
+        {/* Medication schedule  + corusal*/}
         <div className="mt-8 w-full h-full grid grid-cols-[3fr_1fr] gap-3">
           <div className="bg-gray-60 rounded-xl border border-gray-200 shadow-sm p-8">
             <h2 className="text-lg font-bold text-[#1D4258] mb-3">Medication Schedule</h2>
-            <p className="text-md font-semibold text-[#25668E] mb-4">Morning Dose</p>
-            <ul className="space-y-2 text-sm font-medium">
-              <li className="flex items-center justify-between">
-                <div className="flex items-left gap-2">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 accent-blue-500"
-                  />
-                  <span className="text-gray-650">Medicine 1</span>
-                </div>
-                <span className="text-sm text-gray-500">8:00 AM</span>
-              </li>
-              <li className="flex items-center justify-between">
-                <div className="flex items-left gap-2">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 accent-blue-500"
-                  />
-                  <span className="text-gray-650">Medicine 2</span>
-                </div>
-                <span className="text-sm text-gray-500">2:00 PM</span>
-              </li>
-              <li className="flex items-center justify-between">
-                <div className="flex items-left gap-2">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 accent-blue-500"
-                  />
-                  <span className="text-gray-650">Medicine 3</span>
-                </div>
-                <span className="text-sm text-gray-500">8:00 PM</span>
-              </li>
-            </ul>
+
+            {medications.length === 0 ? (
+              <p className="text-sm text-gray-400">No medications scheduled.</p>
+            ) : (
+              <>
+                {morningMeds.length > 0 && (
+                  <>
+                    <p className="text-md font-semibold text-[#25668E] mb-3">Morning</p>
+                    <ul className="space-y-2 text-sm font-medium mb-4">
+                      {morningMeds.map(med => (
+                        <li key={med.id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={!!checkedMeds[med.id]}
+                              onChange={e => setCheckedMeds(prev => ({ ...prev, [med.id]: e.target.checked }))}
+                              className="w-4 h-4 accent-blue-500"
+                            />
+                            <span className={checkedMeds[med.id] ? "line-through text-gray-400" : "text-gray-650"}>
+                              {med.name} — {med.dose}
+                            </span>
+                          </div>
+                          <span className="text-sm text-gray-500">{formatTime(med.consumption_time)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                {afternoonMeds.length > 0 && (
+                  <>
+                    <p className="text-md font-semibold text-[#25668E] mb-3">Afternoon</p>
+                    <ul className="space-y-2 text-sm font-medium mb-4">
+                      {afternoonMeds.map(med => (
+                        <li key={med.id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={!!checkedMeds[med.id]}
+                              onChange={e => setCheckedMeds(prev => ({ ...prev, [med.id]: e.target.checked }))}
+                              className="w-4 h-4 accent-blue-500"
+                            />
+                            <span className={checkedMeds[med.id] ? "line-through text-gray-400" : "text-gray-650"}>
+                              {med.name} — {med.dose}
+                            </span>
+                          </div>
+                          <span className="text-sm text-gray-500">{formatTime(med.consumption_time)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+                {eveningMeds.length > 0 && (
+                  <>
+                    <p className="text-md font-semibold text-[#25668E] mb-3">Evening</p>
+                    <ul className="space-y-2 text-sm font-medium">
+                      {eveningMeds.map(med => (
+                        <li key={med.id} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={!!checkedMeds[med.id]}
+                              onChange={e => setCheckedMeds(prev => ({ ...prev, [med.id]: e.target.checked }))}
+                              className="w-4 h-4 accent-blue-500"
+                            />
+                            <span className={checkedMeds[med.id] ? "line-through text-gray-400" : "text-gray-650"}>
+                              {med.name} — {med.dose}
+                            </span>
+                          </div>
+                          <span className="text-sm text-gray-500">{formatTime(med.consumption_time)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </>
+            )}
           </div>
           <div className="rounded-xl border border-gray-400 shadow-sm flex flex-col items-center justify-center">
-           <HealthCarousel />
+            <HealthCarousel />
           </div>
         </div>
 
+        {/* Journal */}
         <div className="mt-4 w-full rounded-3xl relative overflow-hidden scroll-vertical noise-bg"
-            style={{ background: "linear-gradient(135deg, #39210b 0%, #5c2c07 30%, #8e450d 100%)" }}
-          >
-          {/* visible container*/}
-          <div
-            className="p-6 flex items-center justify-between group cursor-pointer"
-            onClick={() => setIsJournalOpen(!isJournalOpen)}
-          >
+          style={{ background: "linear-gradient(135deg, #39210b 0%, #5c2c07 30%, #8e450d 100%)" }}>
+          <div className="p-6 flex items-center justify-between group cursor-pointer" onClick={() => setIsJournalOpen(!isJournalOpen)}>
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
-              style={{
-                background: "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.08) 50%, transparent 60%)",
-                backgroundSize: "200% 100%",
-                animation: "sheen 0.6s ease forwards",
-              }}
-            />
+              style={{ background: "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.08) 50%, transparent 60%)", backgroundSize: "200% 100%", animation: "sheen 0.6s ease forwards" }} />
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-white/70 mb-1">Daily check-in</p>
               <h2 className="text-lg font-semibold text-white">Log today's activity</h2>
               <p className="text-sm text-white/80 mt-1">How were your activities today?</p>
             </div>
-            <ChevronDown
-              size={40}
-              className={`text-white transition-transform duration-300 flex-shrink-0 ${isJournalOpen ? 'rotate-180' : ''}`}
-            />
+            <ChevronDown size={40} className={`text-white transition-transform duration-300 flex-shrink-0 ${isJournalOpen ? "rotate-180" : ""}`} />
           </div>
-
-          {/* Collapsible journal */}
-          <div className={`overflow-hidden transition-all duration-200 ease-in-out ${
-            isJournalOpen ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0'
-          }`}>
-            <div className="px-3 pb-3">
-              <JournalLog />
-            </div>
+          <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isJournalOpen ? "max-h-[3000px] opacity-100" : "max-h-0 opacity-0"}`}>
+            <div className="px-3 pb-3"><JournalLog /></div>
           </div>
         </div>
 
+        {/* Charts */}
         <div className="mt-8 grid gap-6 lg:grid-cols-2">
           <section className="rounded-3xl bg-white p-6 shadow-sm border border-gray-200">
             <div className="mb-4 flex items-center justify-between">
@@ -435,13 +597,10 @@ export default function DashboardPage() {
                 <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Habit continuity</p>
                 <h2 className="text-xl font-semibold text-slate-900">Weekly streak</h2>
               </div>
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-800">8 days</span>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-800">{dayStreak} days</span>
             </div>
-            <div className="h-72">
-              <canvas ref={habitContinuityChartRef}></canvas>
-            </div>
+            <div className="h-72"><canvas ref={habitContinuityChartRef}></canvas></div>
           </section>
-
           <section className="rounded-3xl bg-white p-6 shadow-sm border border-gray-200">
             <div className="mb-4 flex items-center justify-between">
               <div>
@@ -450,9 +609,7 @@ export default function DashboardPage() {
               </div>
               <span className="rounded-full bg-sky-50 px-3 py-1 text-sm font-semibold text-sky-800">Avg 86%</span>
             </div>
-            <div className="h-72">
-              <canvas ref={healthOverviewChartRef}></canvas>
-            </div>
+            <div className="h-72"><canvas ref={healthOverviewChartRef}></canvas></div>
           </section>
         </div>
 

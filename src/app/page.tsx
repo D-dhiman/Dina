@@ -67,12 +67,12 @@ export default function WelcomePage() {
           >
             {t("login")}
           </Link>
-          {/* <Link
+          <Link
             href="/dashboard"
             className="dina-button"
           >
             {t("continueGuest")}
-          </Link> */}
+          </Link>
         </div>
       </div>
     </main>

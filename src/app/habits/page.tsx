@@ -4,57 +4,58 @@ import { useEffect, useRef, useState } from 'react';
 import Navbar from "../components/navbar";
 import { Plus, Edit, Trash2, RotateCcw, CalendarDays, Sparkles, Flame } from 'lucide-react';
 import Link from "next/link";
-import { 
-  Chart, 
-  CategoryScale, 
-  LinearScale, 
-  LineController, 
-  PointElement, 
-  Tooltip, 
-  Legend, 
-  BarController, 
+import {
+  Chart,
+  CategoryScale,
+  LinearScale,
+  LineController,
+  PointElement,
+  Tooltip,
+  Legend,
+  BarController,
   BarElement,
   LineElement
 } from 'chart.js';
 
 Chart.register(
-  CategoryScale, 
-  LinearScale, 
-  LineController, 
-  LineElement, 
-  PointElement, 
-  Tooltip, 
-  Legend, 
-  BarController, 
+  CategoryScale,
+  LinearScale,
+  LineController,
+  LineElement,
+  PointElement,
+  Tooltip,
+  Legend,
+  BarController,
   BarElement
 );
 
 interface TrackedItem {
-  id: number;
+  id: string;
   name: string;
   status: 'neutral' | 'positive' | 'negative';
 }
 
-export default function HabitsPage() {
-  const [dailies, setDailies] = useState<TrackedItem[]>([
-    { id: 1, name: 'Tongue scraping', status: 'positive' },
-    { id: 2, name: 'Abhyanga oil massage', status: 'neutral' },
-    { id: 3, name: 'Early rising/Brahma Muhurta', status: 'negative' }
-  ]);
+function authHeaders(): HeadersInit {
+  const token = localStorage.getItem('token');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
 
-  const [habits, setHabits] = useState<TrackedItem[]>([
-    { id: 1, name: 'Meditation', status: 'neutral' },
-    { id: 2, name: 'Yoga', status: 'positive' },
-    { id: 3, name: 'Drinking warm water in the morning', status: 'neutral' },
-    { id: 4, name: 'Evening walk', status: 'negative' }
-  ]);
+export default function HabitsPage() {
+  const [dailies, setDailies] = useState<TrackedItem[]>([]);
+  const [habits, setHabits] = useState<TrackedItem[]>([]);
 
   const heatmapGridRef = useRef<HTMLDivElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const complianceChartRef = useRef<HTMLCanvasElement>(null);
   const habitsVsDailiesChartRef = useRef<HTMLCanvasElement>(null);
 
-  const handleStatusToggle = (id: number, type: 'daily' | 'habit', trigger: 'positive' | 'negative') => {
+  const handleStatusToggle = (id: string, type: 'daily' | 'habit', trigger: 'positive' | 'negative') => {
     const updateList = (list: TrackedItem[]): TrackedItem[] =>
       list.map(item => {
         if (item.id === id) {
@@ -70,17 +71,121 @@ export default function HabitsPage() {
     }
   };
 
-  const handleModify = (id: number, type: 'daily' | 'habit') => {
-    alert(`Modify ${type} with id: ${id}`);
-  };
+  const handleModify = async (id: string, type: 'daily' | 'habit') => {
+    const newName = window.prompt('Enter new name', type === 'daily'
+      ? dailies.find(item => item.id === id)?.name
+      : habits.find(item => item.id === id)?.name);
 
-  const handleDelete = (id: number, type: 'daily' | 'habit') => {
-    if (type === 'daily') {
-      setDailies(dailies.filter(daily => daily.id !== id));
-    } else {
-      setHabits(habits.filter(habit => habit.id !== id));
+    if (!newName || !newName.trim()) return;
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('You must be logged in to modify items.');
+      return;
+    }
+
+    console.log('Modify request', { id, type, newName });
+
+    try {
+      const res = await fetch(`/api/${type === 'daily' ? 'dailies' : 'habits'}/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ habit_name: newName }),
+      });
+
+      const payloadText = await res.text();
+      let payload = payloadText;
+      try {
+        const json = JSON.parse(payloadText);
+        payload = json.error || payloadText;
+      } catch {
+        payload = payloadText;
+      }
+
+      if (!res.ok) {
+        console.error('Failed to update item', { id, type, payload });
+        alert(`Update failed: ${payload}`);
+        return;
+      }
+
+      await fetchTrackedItems();
+    } catch (err) {
+      console.error('Failed to update item', err);
+      alert('Update failed. Check console for details.');
     }
   };
+
+  const handleDelete = async (id: string, type: 'daily' | 'habit') => {
+    const endpoint = type === 'daily' ? '/api/dailies' : '/api/habits';
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('You must be logged in to delete items.');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${endpoint}/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const payload = await res.text();
+      if (!res.ok) {
+        console.error('Failed to delete item', payload);
+        alert(`Delete failed: ${payload}`);
+        return;
+      }
+
+      await fetchTrackedItems();
+    } catch (err) {
+      console.error('Failed to delete item', err);
+      alert('Delete failed. Check console for details.');
+    }
+  };
+
+  async function fetchTrackedItems() {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const res = await fetch('/api/habits', { headers: authHeaders() });
+      if (!res.ok) {
+        console.error('Failed to load habits data', res.statusText);
+        return;
+      }
+
+      const data = await res.json();
+      setHabits((data.habits || []).map((item: any) => ({
+        id: item.id,
+        name: item.habit_name,
+        status: 'neutral'
+      })));
+      setDailies((data.dailies || []).map((item: any) => ({
+        id: item.id,
+        name: item.habit_name,
+        status: 'neutral'
+      })));
+    } catch (err) {
+      console.error('Failed to load habits data', err);
+    }
+  }
+
+  useEffect(() => {
+    fetchTrackedItems();
+    const intervalId = window.setInterval(fetchTrackedItems, 15000);
+    window.addEventListener('focus', fetchTrackedItems);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', fetchTrackedItems);
+    };
+  }, []);
 
   useEffect(() => {
     if (!heatmapGridRef.current || !tooltipRef.current) return;

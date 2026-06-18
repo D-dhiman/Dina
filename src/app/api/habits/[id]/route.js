@@ -15,7 +15,7 @@ export async function PATCH(req, { params }) {
     const { id } = await params;
     const prakriti_id = getPrakritiId(req);
     const body = await req.json();
-    const { habit_name, category, prescribed_time, frequency, details } = body;
+    const { habit_name, category, prescribed_time, frequency, details, streak_count, longest_streak } = body;
 
     const updates = [];
     const values = [];
@@ -39,6 +39,14 @@ export async function PATCH(req, { params }) {
     if (details !== undefined) {
       values.push(details);
       updates.push(`details = $${values.length}`);
+    }
+    if (streak_count !== undefined) {
+      values.push(streak_count);
+      updates.push(`streak_count = $${values.length}`);
+    }
+    if (longest_streak !== undefined) {
+      values.push(longest_streak);
+      updates.push(`longest_streak = $${values.length}`);
     }
 
     if (updates.length === 0) {

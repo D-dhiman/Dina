@@ -50,7 +50,67 @@ export async function POST(req) {
       ]
     );
 
-    return Response.json({ log: result.rows[0] });
+    const activeLogicResult = await pool.query(
+      `SELECT
+        EXISTS(
+          SELECT 1 FROM daily_logs
+          WHERE user_id = $1
+            AND log_date = $2
+            AND (
+              (habits_completed->>'done') IN ('true','t','1') OR
+              (dailies_completed->>'done') IN ('true','t','1')
+            )
+        ) AS today_active`,
+      [prakriti_id, log_date]
+    );
+
+    const todayActive = activeLogicResult.rows[0]?.today_active;
+
+    const daysActiveResult = await pool.query(
+      `SELECT COUNT(*) AS days_active
+       FROM daily_logs
+       WHERE user_id = $1
+         AND (
+           (habits_completed->>'done') IN ('true','t','1') OR
+           (dailies_completed->>'done') IN ('true','t','1')
+         )`,
+      [prakriti_id]
+    );
+    const daysActive = parseInt(daysActiveResult.rows[0]?.days_active ?? '0', 10);
+
+    let dayStreak = 0;
+    if (todayActive) {
+      const streakResult = await pool.query(
+        `WITH active_dates AS (
+          SELECT log_date
+          FROM daily_logs
+          WHERE user_id = $1
+            AND log_date <= $2
+            AND (
+              (habits_completed->>'done') IN ('true','t','1') OR
+              (dailies_completed->>'done') IN ('true','t','1')
+            )
+        ), numbered AS (
+          SELECT log_date, ROW_NUMBER() OVER (ORDER BY log_date DESC) AS rn
+          FROM active_dates
+        )
+        SELECT COUNT(*) AS streak
+        FROM numbered
+        WHERE log_date = $2::date - (rn - 1) * INTERVAL '1 day'`,
+        [prakriti_id, log_date]
+      );
+      dayStreak = parseInt(streakResult.rows[0]?.streak ?? '0', 10);
+    }
+
+    await pool.query(
+      `UPDATE users SET day_streak = $1, days_active = $2 WHERE prakriti_id = $3`,
+      [dayStreak, daysActive, prakriti_id]
+    );
+
+    return Response.json({
+      log: result.rows[0],
+      streaks: { day_streak: dayStreak, days_active: daysActive }
+    });
 
   } catch (err) {
     console.error(err);

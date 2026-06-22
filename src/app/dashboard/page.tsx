@@ -280,6 +280,16 @@ export default function DashboardPage() {
         const res = await fetch("/api/dashboard", { headers: authHeaders() });
         if (res.status === 401) { router.push("/login"); return; }
 
+        const today = new Date().toISOString().split("T")[0];
+        const completionsRes = await fetch(`/api/habit-completions?date=${today}`, { headers: authHeaders() });
+        if (completionsRes.ok) {
+          const completionsData = await completionsRes.json();
+          const completed: Record<string, boolean> = {};
+          completionsData.completions.forEach((c: any) => {
+            if (c.is_completed) completed[c.habit_id] = true;
+          });
+          setCheckedHabits(completed);
+        }
         const data = await res.json();
         setUserName(data.user?.name?.split(" ")[0] || "");
         setDayStreak(data.user?.day_streak || 0);

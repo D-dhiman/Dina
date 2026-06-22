@@ -13,29 +13,21 @@ function getPrakritiId(req) {
 export async function GET(req) {
   try {
     const prakriti_id = getPrakritiId(req);
-
-    const [userResult, habitsResult, dailiesResult] = await Promise.all([
+    const [userResult, habitsResult] = await Promise.all([
       pool.query('SELECT name, day_streak FROM users WHERE prakriti_id = $1', [prakriti_id]),
-      pool.query('SELECT id, habit_name, category, prescribed_time, frequency, streak_count FROM habits WHERE user_id = $1', [prakriti_id]),
-      pool.query('SELECT id, habit_name, category, prescribed_time, last_time_to_do, frequency, streak_count FROM dailies WHERE user_id = $1', [prakriti_id]),
+      pool.query('SELECT id, habit_name, category, prescribed_time, frequency, streak_count FROM habits WHERE user_id = $1 AND active = true', [prakriti_id]),
     ]);
 
-    const user = userResult.rows[0];yu
-    if (!user) {
-      return Response.json({ error: 'User not found' }, { status: 404 });
-    }
+    const user = userResult.rows[0];
+    if (!user) return Response.json({ error: 'User not found' }, { status: 404 });
 
-    return Response.json({
-      user,
-      habits: habitsResult.rows,
-      dailies: dailiesResult.rows,
-    });
+    return Response.json({ user, habits: habitsResult.rows });
   } catch (err) {
     if (err.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    console.error('Habits GET Error:', err.message, err);
-    return Response.json({ error: 'Internal server error', details: err.message }, { status: 500 });
+    console.error(err);
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 

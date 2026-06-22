@@ -209,30 +209,38 @@ export default function HabitsPage() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const res = await fetch('/api/habits', { headers: authHeaders() });
-      if (!res.ok) return;
+      const [habitsRes, dailiesRes] = await Promise.all([
+        fetch('/api/habits', { headers: authHeaders() }),
+        fetch('/api/dailies', { headers: authHeaders() }),
+      ]);
 
-      const data = await res.json();
-      setDayStreak(data.user?.day_streak || 3);
-      setUserName(data.user?.name?.split(" ")[0] || "Explorer");
-      
-      if (data.habits || data.dailies) {
-        setHabits((data.habits || []).map((item: any) => ({
-          id: item.id,
-          name: item.habit_name || item.name,
-          status: 'neutral'
-        })));
-        setDailies((data.dailies || []).map((item: any) => ({
-          id: item.id,
-          name: item.habit_name || item.name,
-          status: 'neutral'
-        })));
+      if (!habitsRes.ok || !dailiesRes.ok) {
+        console.error('Failed to load data');
+        return;
       }
+
+      const habitsData = await habitsRes.json();
+      const dailiesData = await dailiesRes.json();
+
+      setUserName(habitsData.user?.name?.split(" ")[0] || "");
+      setDayStreak(habitsData.user?.day_streak || 0);
+
+      setHabits((habitsData.habits || []).map((item: any) => ({
+        id: item.id,
+        name: item.habit_name,
+        status: 'neutral'
+      })));
+
+      setDailies((dailiesData.dailies || []).map((item: any) => ({
+        id: item.id,
+        name: item.habit_name,
+        status: 'neutral'
+      })));
+
     } catch (err) {
       console.error('Failed to load habits data', err);
     }
   }
-
   useEffect(() => {
     calculateFrontendCompliance();
   }, [dailies, habits]);

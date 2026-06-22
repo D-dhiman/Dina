@@ -14,9 +14,10 @@ export async function GET(req) {
   try {
     const prakriti_id = getPrakritiId(req);
     const result = await pool.query(
-      'SELECT id, habit_name, category, prescribed_time, last_time_to_do, frequency, streak_count FROM dailies WHERE user_id = $1',
+      'SELECT id, habit_name, category, prescribed_time, last_time_to_do, frequency, streak_count FROM dailies WHERE user_id = $1 AND active = true',
       [prakriti_id]
     );
+    console.log('rows returned:', result.rows);
     return Response.json({ dailies: result.rows });
   } catch (err) {
     if (err.message === 'Unauthorized') {

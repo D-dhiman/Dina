@@ -13,16 +13,11 @@ function getPrakritiId(req) {
 export async function GET(req) {
   try {
     const prakriti_id = getPrakritiId(req);
-
-    const [habitsResult, dailiesResult] = await Promise.all([
-      pool.query('SELECT id, habit_name, category, prescribed_time, frequency, streak_count FROM habits WHERE user_id = $1', [prakriti_id]),
-      pool.query('SELECT id, habit_name, category, prescribed_time, last_time_to_do, frequency, streak_count FROM dailies WHERE user_id = $1', [prakriti_id]),
-    ]);
-
-    return Response.json({
-      habits: habitsResult.rows,
-      dailies: dailiesResult.rows,
-    });
+    const result = await pool.query(
+      'SELECT id, habit_name, category, prescribed_time, frequency, streak_count FROM habits WHERE user_id = $1 AND active = true',
+      [prakriti_id]
+    );
+    return Response.json({ habits: result.rows });
   } catch (err) {
     if (err.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });

@@ -3,12 +3,13 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { icons } from "lucide-react";
+import { Form } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: "/home.svg" },
   { label: "Habits", href:"/habits", icon: "/habits.svg" },
   { label: "Analysis", href: "/analysis", icon: "/analysis.svg" },
+  { label: "Assessment", href: "/wellness", icon: "/assessment.svg" },
   { label: "Twin", href: "/twin", icon: "/twin.svg" },
   { label: "Profile", href: "/profile", icon: "/profile.svg" },
 ];

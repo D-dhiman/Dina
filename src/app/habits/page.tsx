@@ -154,23 +154,31 @@ export default function HabitsPage() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const res = await fetch('/api/habits', { headers: authHeaders() });
-      if (!res.ok) {
-        console.error('Failed to load habits data', res.statusText);
+      const [habitsRes, dailiesRes] = await Promise.all([
+        fetch('/api/habits', { headers: authHeaders() }),
+        fetch('/api/dailies', { headers: authHeaders() }),
+      ]);
+
+      if (!habitsRes.ok || !dailiesRes.ok) {
+        console.error('Failed to load data');
         return;
       }
 
-      const data = await res.json();
-      setHabits((data.habits || []).map((item: any) => ({
+      const habitsData = await habitsRes.json();
+      const dailiesData = await dailiesRes.json();
+
+      setHabits((habitsData.habits || []).map((item: any) => ({
         id: item.id,
         name: item.habit_name,
         status: 'neutral'
       })));
-      setDailies((data.dailies || []).map((item: any) => ({
+
+      setDailies((dailiesData.dailies || []).map((item: any) => ({
         id: item.id,
         name: item.habit_name,
         status: 'neutral'
       })));
+
     } catch (err) {
       console.error('Failed to load habits data', err);
     }

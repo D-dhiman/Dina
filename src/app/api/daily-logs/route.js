@@ -56,24 +56,33 @@ export async function POST(req) {
           SELECT 1 FROM daily_logs
           WHERE user_id = $1
             AND log_date = $2
-            AND (
-              (habits_completed->>'done') IN ('true','t','1') OR
-              (dailies_completed->>'done') IN ('true','t','1')
-            )
-        ) AS today_active`,
+            AND (habits_completed->>'done') IN ('true','t','1')
+        ) AS has_journal_log,
+        EXISTS(
+          SELECT 1 FROM daily_logs dl
+          WHERE dl.user_id = $1
+            AND dl.log_date = $2
+            AND (SELECT COUNT(*) FROM dailies WHERE user_id = $1) > 0
+            AND (SELECT COUNT(*) FROM dailies WHERE user_id = $1 
+                 AND id IN (SELECT jsonb_array_elements(dl.dailies_completed)->>'id'))
+                = (SELECT COUNT(*) FROM dailies WHERE user_id = $1)
+        ) AS all_dailies_completed`,
       [prakriti_id, log_date]
     );
 
-    const todayActive = activeLogicResult.rows[0]?.today_active;
+    const hasJournalLog = activeLogicResult.rows[0]?.has_journal_log;
+    const allDailiesCompleted = activeLogicResult.rows[0]?.all_dailies_completed;
+    const todayActive = hasJournalLog && allDailiesCompleted;
 
     const daysActiveResult = await pool.query(
       `SELECT COUNT(*) AS days_active
-       FROM daily_logs
-       WHERE user_id = $1
-         AND (
-           (habits_completed->>'done') IN ('true','t','1') OR
-           (dailies_completed->>'done') IN ('true','t','1')
-         )`,
+       FROM daily_logs dl
+       WHERE dl.user_id = $1
+         AND (habits_completed->>'done') IN ('true','t','1')
+         AND (SELECT COUNT(*) FROM dailies WHERE user_id = $1) > 0
+         AND (SELECT COUNT(*) FROM dailies WHERE user_id = $1 
+              AND id IN (SELECT jsonb_array_elements(dl.dailies_completed)->>'id'))
+             = (SELECT COUNT(*) FROM dailies WHERE user_id = $1)`,
       [prakriti_id]
     );
     const daysActive = parseInt(daysActiveResult.rows[0]?.days_active ?? '0', 10);
@@ -82,14 +91,15 @@ export async function POST(req) {
     if (todayActive) {
       const streakResult = await pool.query(
         `WITH active_dates AS (
-          SELECT log_date
-          FROM daily_logs
-          WHERE user_id = $1
-            AND log_date <= $2
-            AND (
-              (habits_completed->>'done') IN ('true','t','1') OR
-              (dailies_completed->>'done') IN ('true','t','1')
-            )
+          SELECT dl.log_date
+          FROM daily_logs dl
+          WHERE dl.user_id = $1
+            AND dl.log_date <= $2
+            AND (dl.habits_completed->>'done') IN ('true','t','1')
+            AND (SELECT COUNT(*) FROM dailies WHERE user_id = $1) > 0
+            AND (SELECT COUNT(*) FROM dailies WHERE user_id = $1 
+                 AND id IN (SELECT jsonb_array_elements(dl.dailies_completed)->>'id'))
+                = (SELECT COUNT(*) FROM dailies WHERE user_id = $1)
         ), numbered AS (
           SELECT log_date, ROW_NUMBER() OVER (ORDER BY log_date DESC) AS rn
           FROM active_dates

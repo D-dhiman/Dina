@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "../i18n";
 
 import {
   Geist,

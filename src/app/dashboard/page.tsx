@@ -249,6 +249,11 @@ interface Habit { id: string; habit_name: string; streak_count: number; }
 export default function DashboardPage() {
   const habitContinuityChartRef = useRef<HTMLCanvasElement>(null);
   const healthOverviewChartRef = useRef<HTMLCanvasElement>(null);
+  
+  // Declaring refs to capture the active chart instances and fix the ReferenceError
+  const habitChartInstance = useRef<Chart | null>(null);
+  const healthChartInstance = useRef<Chart | null>(null);
+
   const [isJournalOpen, setIsJournalOpen] = useState(false);
   const router = useRouter();
 
@@ -315,54 +320,115 @@ export default function DashboardPage() {
 
     fetchDateTime();
 
-    const habitChartCanvas = habitContinuityChartRef.current;
-    const healthChartCanvas = healthOverviewChartRef.current;
-    if (!habitChartCanvas || !healthChartCanvas) return;
+    async function fetchGraphData() {
+      try {
+        const [habitCompRes, healthRes] = await Promise.all([
+          fetch('/api/habit-completions?days=7', { headers: authHeaders() }),
+          fetch('/api/daily-logs', { headers: authHeaders() })
+        ]);
 
-    const habitCtx = habitChartCanvas.getContext("2d");
-    const healthCtx = healthChartCanvas.getContext("2d");
-    if (!habitCtx || !healthCtx) return;
+        let habitContinuityData: number[] = [];
+        let healthScoreData: number[] = [];
+        let habitLabels: string[] = [];
+        let healthLabels: string[] = [];
 
-    const labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+        // Fetch habit completion data (last 7 days)
+        if (habitCompRes.ok) {
+          const habitData = await habitCompRes.json();
+          if (habitData.completionCounts && habitData.completionCounts.length > 0) {
+            habitContinuityData = habitData.completionCounts.map((item: any) => item.count);
+            habitLabels = habitData.completionCounts.map((item: any) => {
+              const date = new Date(item.date);
+              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+          }
+        }
 
-    const habitChart = new Chart(habitCtx, {
-      type: "line",
-      data: {
-        labels,
-        datasets: [{
-          label: "Habit continuity",
-          data: [3, 4, 5, 4, 6, 7, 8],
-          borderColor: "rgb(34, 197, 94)",
-          backgroundColor: "rgba(34, 197, 94, 0.15)",
-          fill: true, tension: 0.35, pointRadius: 4,
-        }],
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { intersect: false, mode: "index" } },
-        scales: { y: { beginAtZero: true, suggestedMax: 10, ticks: { stepSize: 2 } } },
-      },
-    });
+        // Fetch health score data from daily logs (last 7 days)
+        if (healthRes.ok) {
+          const logData = await healthRes.json();
+          const logs = (logData.logs || []).sort((a: any, b: any) => 
+            new Date(a.log_date).getTime() - new Date(b.log_date).getTime()
+          ).slice(-7);
 
-    const healthChart = new Chart(healthCtx, {
-      type: "bar",
-      data: {
-        labels,
-        datasets: [{
-          label: "Overall health score",
-          data: [78, 84, 82, 88, 90, 87, 92],
-          backgroundColor: "rgba(59, 130, 246, 0.8)",
-          borderRadius: 12, barPercentage: 0.65,
-        }],
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { intersect: false, mode: "index" } },
-        scales: { y: { beginAtZero: true, suggestedMax: 100, ticks: { stepSize: 20 } } },
-      },
-    });
+          if (logs.length > 0) {
+            healthScoreData = logs.map((log: any) => log.mood_score || 0);
+            healthLabels = logs.map((log: any) => {
+              const date = new Date(log.log_date);
+              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            });
+          }
+        }
 
-    return () => { habitChart.destroy(); healthChart.destroy(); };
+        const habitChartCanvas = habitContinuityChartRef.current;
+        const healthChartCanvas = healthOverviewChartRef.current;
+        if (!habitChartCanvas || !healthChartCanvas) return;
+
+        const habitCtx = habitChartCanvas.getContext("2d");
+        const healthCtx = healthChartCanvas.getContext("2d");
+        if (!habitCtx || !healthCtx) return;
+
+        // Destroy existing charts if they exist
+        if (habitChartInstance.current) habitChartInstance.current.destroy();
+        if (healthChartInstance.current) healthChartInstance.current.destroy();
+
+        habitChartInstance.current = new Chart(habitCtx, {
+          type: "line",
+          data: {
+            labels: habitLabels,
+            datasets: [{
+              label: "Habit continuity",
+              data: habitContinuityData,
+              borderColor: "rgb(34, 197, 94)",
+              backgroundColor: "rgba(34, 197, 94, 0.15)",
+              fill: true, tension: 0.35, pointRadius: 4,
+            }],
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { intersect: false, mode: "index" } },
+            scales: { y: { beginAtZero: true, suggestedMax: 10, ticks: { stepSize: 2 } } },
+          },
+        });
+
+        healthChartInstance.current = new Chart(healthCtx, {
+          type: "bar",
+          data: {
+            labels: healthLabels,
+            datasets: [{
+              label: "Overall health score",
+              data: healthScoreData,
+              backgroundColor: "rgba(59, 130, 246, 0.8)",
+              borderRadius: 12, barPercentage: 0.65,
+            }],
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { intersect: false, mode: "index" } },
+            scales: { y: { beginAtZero: true, suggestedMax: 100, ticks: { stepSize: 20 } } },
+          },
+        });
+
+      } catch (err) {
+        console.error("Failed to fetch graph data", err);
+      }
+    }
+
+    if (!loading) {
+      fetchGraphData();
+    }
+
+    // Comprehensive unmount strategy using the correct ref properties
+    return () => { 
+      if (habitChartInstance.current) {
+        habitChartInstance.current.destroy();
+        habitChartInstance.current = null;
+      }
+      if (healthChartInstance.current) {
+        healthChartInstance.current.destroy();
+        healthChartInstance.current = null;
+      }
+    };
   }, [loading]);
 
   const habitsCompleted = Object.values(checkedHabits).filter(Boolean).length;
@@ -485,7 +551,7 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Medication schedule  + corusal*/}
+        {/* Medication schedule  + carousel */}
         <div className="mt-8 w-full h-full grid grid-cols-[3fr_1fr] gap-3">
           <div className="bg-gray-60 rounded-xl border border-gray-200 shadow-sm p-8">
             <h2 className="text-lg font-bold text-[#1D4258] mb-3">Medication Schedule</h2>

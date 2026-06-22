@@ -117,46 +117,47 @@ const wellnessData: ChartData<"bar"> = {
 };
 
 const kpis = [
-  { label: "Yearly Wellness",  value: "83", unit: "/100", delta: "+15pts", bgClass: "bg-[#AED27D]", hexColor: "#052e16", icon: <Shield size={20} /> },
-  { label: "Avg HRV",          value: "41", unit: "ms",   delta: "-3ms",   bgClass: "bg-red-200",   hexColor: "#4c0519", icon: <Heart size={20} /> },
-  { label: "Sleep Efficiency", value: "79", unit: "%",    delta: "+4%",    bgClass: "bg-[#A6C7F2]", hexColor: "#082f49", icon: <Zap size={20} /> },
+  { label: "Yearly Wellness",  value: "83", bgHex: "#AED27D", textHex: "#1a3d1a" },
+  { label: "Avg HRV",          value: "41", bgHex: "#fecaca", textHex: "#450a0a" },
+  { label: "Sleep Efficiency", value: "79", bgHex: "#A6C7F2", textHex: "#0c2340" },
+];
+
+// Chart layout config for PDF — title + ref key
+const CHART_SECTIONS = [
+  { title: "Heart Rate Variability vs Resting Pulse", key: "hrv",     bg: "#ffffff" },
+  { title: "Sleep Architecture",                       key: "sleep",   bg: "#A6C7F2" },
+  { title: "Dosha Imbalance Map",                      key: "dosha",   bg: "#AED27D" },
+  { title: "Pulse × Sleep Overlap",                    key: "scatter", bg: "#ffffff" },
+  { title: "Inflammatory Index Tracker",               key: "inflame", bg: "#ffffff" },
+  { title: "Longitudinal Wellness Base",               key: "wellness",bg: "#ffffff" },
 ];
 
 export default function AnalyticsPage() {
-  const hrvRef      = useRef<HTMLCanvasElement | null>(null);
-  const sleepRef    = useRef<HTMLCanvasElement | null>(null);
-  const doshaRef    = useRef<HTMLCanvasElement | null>(null);
-  const scatterRef  = useRef<HTMLCanvasElement | null>(null);
-  const inflameRef  = useRef<HTMLCanvasElement | null>(null);
-  const wellnessRef = useRef<HTMLCanvasElement | null>(null);
-  const reportRef   = useRef<HTMLDivElement | null>(null);
-  const chartsRef   = useRef<Chart[]>([]);
+  const chartRefs = useRef<Record<string, HTMLCanvasElement | null>>({});
+  const chartsRef = useRef<Chart[]>([]);
 
   const [downloading, setDownloading] = useState(false);
   const [downloadError, setDownloadError] = useState<string | null>(null);
 
-  // Build all charts on mount
+  const setRef = (key: string) => (el: HTMLCanvasElement | null) => {
+    chartRefs.current[key] = el;
+  };
+
   useEffect(() => {
     chartsRef.current.forEach((c) => c.destroy());
     chartsRef.current = [];
 
-    const make = (
-      ref: React.RefObject<HTMLCanvasElement | null>,
-      type: any,
-      data: any,
-      options: any
-    ) => {
-      if (ref.current) {
-        chartsRef.current.push(new Chart(ref.current, { type, data, options }));
-      }
+    const make = (key: string, type: any, data: any, options: any) => {
+      const el = chartRefs.current[key];
+      if (el) chartsRef.current.push(new Chart(el, { type, data, options }));
     };
 
-    make(hrvRef,      "line",    hrvData,          hrvOptions);
-    make(sleepRef,    "bar",     sleepData,        sleepOptions);
-    make(doshaRef,    "radar",   doshaData,        doshaOptions);
-    make(scatterRef,  "scatter", pulseScatterData, { responsive: true, maintainAspectRatio: false });
-    make(inflameRef,  "line",    inflameData,      { ...hrvOptions });
-    make(wellnessRef, "bar",     wellnessData,     { ...hrvOptions });
+    make("hrv",     "line",    hrvData,          hrvOptions);
+    make("sleep",   "bar",     sleepData,        sleepOptions);
+    make("dosha",   "radar",   doshaData,        doshaOptions);
+    make("scatter", "scatter", pulseScatterData, { responsive: true, maintainAspectRatio: false });
+    make("inflame", "line",    inflameData,      { ...hrvOptions });
+    make("wellness","bar",     wellnessData,     { ...hrvOptions });
 
     return () => {
       chartsRef.current.forEach((c) => c.destroy());
@@ -164,74 +165,113 @@ export default function AnalyticsPage() {
     };
   }, []);
 
+  // ─── PDF built directly from chart canvases — zero html2canvas, zero lab() errors ───
   const handleDownload = useCallback(async () => {
-    if (!reportRef.current || downloading) return;
+    if (downloading) return;
     setDownloading(true);
     setDownloadError(null);
 
-    // Snapshot every canvas → <img> so html2canvas captures rasterized chart pixels
-    const canvasEls = Array.from(
-      reportRef.current.querySelectorAll<HTMLCanvasElement>("canvas")
-    );
-    const swaps: Array<{ canvas: HTMLCanvasElement; img: HTMLImageElement; parent: Element; next: ChildNode | null }> = [];
-
-    for (const canvas of canvasEls) {
-      const img = document.createElement("img");
-      img.src = canvas.toDataURL("image/png");
-      img.style.width  = canvas.offsetWidth  + "px";
-      img.style.height = canvas.offsetHeight + "px";
-      img.style.display = "block";
-      const parent = canvas.parentElement!;
-      const next   = canvas.nextSibling;
-      parent.replaceChild(img, canvas);
-      swaps.push({ canvas, img, parent, next });
-    }
-
     try {
-      await loadScript("https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js");
       await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js");
 
-      const h2c    = (window as any).html2canvas;
-      const jsPDF  = (window as any).jspdf?.jsPDF ?? (window as any).jsPDF;
+      const jsPDF = (window as any).jspdf?.jsPDF ?? (window as any).jsPDF;
+      if (!jsPDF) throw new Error("jsPDF failed to load.");
 
-      if (!h2c || !jsPDF) throw new Error("PDF libraries failed to load.");
+      // A4 landscape: 297 × 210 mm
+      const pdf = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+      const PW = 297; // page width mm
+      const PH = 210; // page height mm
+      const MARGIN = 10;
+      const usableW = PW - MARGIN * 2;
 
-      const captured = await h2c(reportRef.current, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#fcfdfa",
-        logging: false,
-        // Ensure full scroll height is captured
-        windowWidth:  reportRef.current.scrollWidth,
-        windowHeight: reportRef.current.scrollHeight,
+      // ── Cover / KPI page ──────────────────────────────────────────────────
+      pdf.setFillColor(252, 253, 250);
+      pdf.rect(0, 0, PW, PH, "F");
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(22);
+      pdf.setTextColor(30, 58, 30);
+      pdf.text("DINA-AI Analytics Report", MARGIN, 22);
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10);
+      pdf.setTextColor(138, 148, 133);
+      pdf.text(`Generated ${new Date().toLocaleDateString("en-IN", { day:"numeric", month:"long", year:"numeric" })}`, MARGIN, 30);
+
+      // KPI boxes
+      const kpiBoxW = 60;
+      kpis.forEach((k, i) => {
+        const x = MARGIN + i * (kpiBoxW + 6);
+        const y = 38;
+        // box fill
+        const hex = k.bgHex.replace("#","");
+        const r = parseInt(hex.substring(0,2),16);
+        const g = parseInt(hex.substring(2,4),16);
+        const b = parseInt(hex.substring(4,6),16);
+        pdf.setFillColor(r, g, b);
+        pdf.roundedRect(x, y, kpiBoxW, 28, 5, 5, "F");
+        // label
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(7);
+        pdf.setTextColor(0, 0, 0);
+        pdf.text(k.label.toUpperCase(), x + 4, y + 9);
+        // value
+        const th = k.textHex.replace("#","");
+        pdf.setTextColor(parseInt(th.substring(0,2),16), parseInt(th.substring(2,4),16), parseInt(th.substring(4,6),16));
+        pdf.setFontSize(26);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(k.value, x + 4, y + 23);
       });
 
-      const imgData = captured.toDataURL("image/png");
-      const pdf     = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+      // ── Chart pages: 2 charts per page, side by side ──────────────────────
+      const CHARTS_PER_ROW = 2;
+      const chartW = (usableW - 6) / CHARTS_PER_ROW; // mm per chart
+      const chartH = 70; // mm height per chart block
+      const startY = 80;
 
-      const pageW  = pdf.internal.pageSize.getWidth();
-      const pageH  = pdf.internal.pageSize.getHeight();
-      const ratio  = captured.height / captured.width;
-      const imgH   = pageW * ratio;
+      // We'll fit up to 2 rows (4 charts) on the cover page below KPIs,
+      // then remaining charts on a new page
+      let col = 0;
+      let row = 0;
+      let pageInitialized = false;
 
-      // If content is taller than one page, split across multiple pages
-      if (imgH <= pageH) {
-        pdf.addImage(imgData, "PNG", 0, 0, pageW, imgH);
-      } else {
-        let yOffset = 0;
-        const srcH  = captured.width * (pageH / pageW); // source px height per page slice
+      for (const section of CHART_SECTIONS) {
+        const canvas = chartRefs.current[section.key];
+        if (!canvas) continue;
 
-        while (yOffset < captured.height) {
-          const sliceCanvas = document.createElement("canvas");
-          sliceCanvas.width  = captured.width;
-          sliceCanvas.height = Math.min(srcH, captured.height - yOffset);
-          const ctx = sliceCanvas.getContext("2d")!;
-          ctx.drawImage(captured, 0, -yOffset);
-          pdf.addImage(sliceCanvas.toDataURL("image/png"), "PNG", 0, 0, pageW, pageH);
-          yOffset += srcH;
-          if (yOffset < captured.height) pdf.addPage();
+        const imgData = canvas.toDataURL("image/png");
+
+        // New page every 4 charts (2 cols × 2 rows), but first 4 go on cover page
+        if (col === 0 && row === 2) {
+          pdf.addPage();
+          pdf.setFillColor(252, 253, 250);
+          pdf.rect(0, 0, PW, PH, "F");
+          row = 0;
+          pageInitialized = true;
         }
+
+        const x = MARGIN + col * (chartW + 6);
+        const y = (pageInitialized ? MARGIN : startY) + row * (chartH + 12);
+
+        // Section background
+        const bg = section.bg.replace("#","");
+        pdf.setFillColor(parseInt(bg.substring(0,2),16), parseInt(bg.substring(2,4),16), parseInt(bg.substring(4,6),16));
+        pdf.roundedRect(x, y, chartW, chartH, 5, 5, "F");
+
+        // Title
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(8);
+        pdf.setTextColor(30, 58, 30);
+        pdf.text(section.title, x + 4, y + 7);
+
+        // Chart image (preserve aspect ratio)
+        const imgAspect = canvas.height / canvas.width;
+        const imgW = chartW - 8;
+        const imgH = Math.min(imgW * imgAspect, chartH - 14);
+        pdf.addImage(imgData, "PNG", x + 4, y + 10, imgW, imgH);
+
+        col++;
+        if (col >= CHARTS_PER_ROW) { col = 0; row++; }
       }
 
       pdf.save(`DINA-AI-Analytics-${new Date().toISOString().slice(0, 10)}.pdf`);
@@ -239,29 +279,21 @@ export default function AnalyticsPage() {
       console.error("PDF generation failed:", err);
       setDownloadError(err?.message ?? "Download failed. Please try again.");
     } finally {
-      // Restore all canvases
-      for (const { canvas, img, parent, next } of swaps) {
-        if (next) parent.insertBefore(canvas, next);
-        else parent.appendChild(canvas);
-        img.remove();
-      }
       setDownloading(false);
     }
   }, [downloading]);
 
   return (
-    <div className="w-full min-h-screen bg-[#fcfdfa] pb-20 font-sans">
+    <div className="w-full min-h-screen pb-20 font-sans" style={{ backgroundColor: "#fcfdfa" }}>
       <Navbar />
-      <main
-        ref={reportRef}
-        className="w-full py-10 px-4 sm:px-6 lg:px-8 container mx-auto flex flex-col gap-8"
-      >
-        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-gray-100 pb-6">
+      <main className="w-full py-10 px-4 sm:px-6 lg:px-8 container mx-auto flex flex-col gap-8">
+
+        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6" style={{ borderBottom: "1px solid #f0f0f0" }}>
           <div>
-            <h1 className="text-3xl font-bold text-[#1e3a1e] tracking-tight">
+            <h1 className="text-3xl font-bold tracking-tight" style={{ color: "#1e3a1e" }}>
               DINA-AI Analytics Engine 📊
             </h1>
-            <p className="text-sm text-[#8a9485] font-medium mt-1">
+            <p className="text-sm font-medium mt-1" style={{ color: "#8a9485" }}>
               Deep Ayurvedic Insights &amp; Longitudinal Health Trends
             </p>
           </div>
@@ -269,60 +301,65 @@ export default function AnalyticsPage() {
             <button
               onClick={handleDownload}
               disabled={downloading}
-              className="font-semibold py-2 px-4 rounded-xl flex items-center gap-2 text-sm text-white bg-emerald-700 hover:bg-emerald-800 active:bg-emerald-900 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="font-semibold py-2 px-4 rounded-xl flex items-center gap-2 text-sm transition-colors"
+              style={{
+                color: "#fff",
+                backgroundColor: downloading ? "#9ca3af" : "#047857",
+                cursor: downloading ? "not-allowed" : "pointer",
+              }}
             >
               <Download size={16} />
               <span>{downloading ? "Generating PDF…" : "Download Report PDF"}</span>
             </button>
             {downloadError && (
-              <p className="text-xs text-red-500 max-w-xs text-right">{downloadError}</p>
+              <p className="text-xs max-w-xs text-right" style={{ color: "#ef4444" }}>{downloadError}</p>
             )}
           </div>
         </header>
 
-        {/* KPI Cards */}
+        {/* KPI Cards — all inline styles, zero Tailwind color classes */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {kpis.map((k) => (
-            <div key={k.label} className={`${k.bgClass} border border-white/20 rounded-[32px] p-6 shadow-sm`}>
+            <div key={k.label} className="rounded-[32px] p-6 shadow-sm" style={{ backgroundColor: k.bgHex, border: "1px solid rgba(255,255,255,0.2)" }}>
               <p className="text-[11px] font-bold tracking-wider uppercase" style={{ color: "rgba(0,0,0,0.4)" }}>{k.label}</p>
-              <span className="text-3xl font-black" style={{ color: k.hexColor }}>{k.value}</span>
+              <span className="text-3xl font-black" style={{ color: k.textHex }}>{k.value}</span>
             </div>
           ))}
         </div>
 
         {/* HRV + Sleep */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <section className="lg:col-span-2 bg-white border border-gray-100 rounded-[32px] p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-[#1e3a1e] mb-6">Heart Rate Variability vs Resting Pulse</h2>
-            <div className="h-[240px] relative"><canvas ref={hrvRef} /></div>
+          <section className="lg:col-span-2 rounded-[32px] p-6 shadow-sm" style={{ backgroundColor: "#ffffff", border: "1px solid #f3f4f6" }}>
+            <h2 className="text-lg font-bold mb-6" style={{ color: "#1e3a1e" }}>Heart Rate Variability vs Resting Pulse</h2>
+            <div className="h-[240px] relative"><canvas ref={setRef("hrv")} /></div>
           </section>
-          <section className="bg-[#A6C7F2] rounded-[32px] p-6 shadow-sm">
-            <h2 className="text-lg font-bold mb-6" style={{ color: "#082f49" }}>Sleep Architecture</h2>
-            <div className="h-[240px] relative"><canvas ref={sleepRef} /></div>
+          <section className="rounded-[32px] p-6 shadow-sm" style={{ backgroundColor: "#A6C7F2" }}>
+            <h2 className="text-lg font-bold mb-6" style={{ color: "#0c2340" }}>Sleep Architecture</h2>
+            <div className="h-[240px] relative"><canvas ref={setRef("sleep")} /></div>
           </section>
         </div>
 
         {/* Dosha + Scatter */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <section className="bg-[#AED27D] rounded-[32px] p-6 shadow-sm">
-            <h2 className="text-lg font-bold mb-4" style={{ color: "#052e16" }}>Dosha Imbalance Map</h2>
-            <div className="h-[260px] relative"><canvas ref={doshaRef} /></div>
+          <section className="rounded-[32px] p-6 shadow-sm" style={{ backgroundColor: "#AED27D" }}>
+            <h2 className="text-lg font-bold mb-4" style={{ color: "#1a3d1a" }}>Dosha Imbalance Map</h2>
+            <div className="h-[260px] relative"><canvas ref={setRef("dosha")} /></div>
           </section>
-          <section className="bg-white border border-gray-100 rounded-[32px] p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-[#1e3a1e] mb-4">Pulse × Sleep Overlap</h2>
-            <div className="h-[220px] relative"><canvas ref={scatterRef} /></div>
+          <section className="rounded-[32px] p-6 shadow-sm" style={{ backgroundColor: "#ffffff", border: "1px solid #f3f4f6" }}>
+            <h2 className="text-lg font-bold mb-4" style={{ color: "#1e3a1e" }}>Pulse × Sleep Overlap</h2>
+            <div className="h-[220px] relative"><canvas ref={setRef("scatter")} /></div>
           </section>
         </div>
 
         {/* Inflammation + Wellness */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <section className="bg-white border border-gray-100 rounded-[32px] p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-[#1e3a1e] mb-4">Inflammatory Index Tracker</h2>
-            <div className="h-[200px] relative"><canvas ref={inflameRef} /></div>
+          <section className="rounded-[32px] p-6 shadow-sm" style={{ backgroundColor: "#ffffff", border: "1px solid #f3f4f6" }}>
+            <h2 className="text-lg font-bold mb-4" style={{ color: "#1e3a1e" }}>Inflammatory Index Tracker</h2>
+            <div className="h-[200px] relative"><canvas ref={setRef("inflame")} /></div>
           </section>
-          <section className="bg-white border border-gray-100 rounded-[32px] p-6 shadow-sm">
-            <h2 className="text-lg font-bold text-[#1e3a1e] mb-4">Longitudinal Wellness Base</h2>
-            <div className="h-[200px] relative"><canvas ref={wellnessRef} /></div>
+          <section className="rounded-[32px] p-6 shadow-sm" style={{ backgroundColor: "#ffffff", border: "1px solid #f3f4f6" }}>
+            <h2 className="text-lg font-bold mb-4" style={{ color: "#1e3a1e" }}>Longitudinal Wellness Base</h2>
+            <div className="h-[200px] relative"><canvas ref={setRef("wellness")} /></div>
           </section>
         </div>
       </main>

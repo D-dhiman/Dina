@@ -20,7 +20,7 @@ export async function GET(req) {
       pool.query('SELECT id, habit_name, category, prescribed_time, last_time_to_do, frequency, streak_count FROM dailies WHERE user_id = $1', [prakriti_id]),
     ]);
 
-    const user = userResult.rows[0];
+    const user = userResult.rows[0];yu
     if (!user) {
       return Response.json({ error: 'User not found' }, { status: 404 });
     }

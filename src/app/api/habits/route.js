@@ -22,8 +22,8 @@ export async function GET(req) {
     if (err.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    console.error(err);
-    return Response.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Habits GET Error:', err.message, err);
+    return Response.json({ error: 'Internal server error', details: err.message }, { status: 500 });
   }
 }
 
@@ -49,7 +49,7 @@ export async function POST(req) {
     if (err.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    console.error(err);
-    return Response.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Habits POST Error:', err.message, err);
+    return Response.json({ error: 'Internal server error', details: err.message }, { status: 500 });
   }
 }

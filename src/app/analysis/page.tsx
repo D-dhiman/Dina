@@ -291,7 +291,7 @@ export default function AnalyticsPage() {
         <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-6" style={{ borderBottom: "1px solid #f0f0f0" }}>
           <div>
             <h1 className="text-3xl font-bold tracking-tight" style={{ color: "#1e3a1e" }}>
-              DINA-AI Analytics Engine 📊
+              DINA-AI Analytics Engine
             </h1>
             <p className="text-sm font-medium mt-1" style={{ color: "#8a9485" }}>
               Deep Ayurvedic Insights &amp; Longitudinal Health Trends
@@ -341,7 +341,7 @@ export default function AnalyticsPage() {
 
         {/* Dosha + Scatter */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <section className="rounded-[32px] p-6 shadow-sm" style={{ backgroundColor: "#AED27D" }}>
+          <section className="rounded-[32px] p-6 shadow-sm" style={{ backgroundColor: "#d4e0c2" }}>
             <h2 className="text-lg font-bold mb-4" style={{ color: "#1a3d1a" }}>Dosha Imbalance Map</h2>
             <div className="h-[260px] relative"><canvas ref={setRef("dosha")} /></div>
           </section>

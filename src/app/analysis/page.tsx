@@ -333,7 +333,7 @@ export default function AnalyticsPage() {
             <h2 className="text-lg font-bold mb-6" style={{ color: "#1e3a1e" }}>Heart Rate Variability vs Resting Pulse</h2>
             <div className="h-[240px] relative"><canvas ref={setRef("hrv")} /></div>
           </section>
-          <section className="rounded-[32px] p-6 shadow-sm" style={{ backgroundColor: "#A6C7F2" }}>
+          <section className="rounded-[32px] p-6 shadow-sm" style={{ backgroundColor: "#ffffff", border: "1px solid #f3f4f6" }}>
             <h2 className="text-lg font-bold mb-6" style={{ color: "#0c2340" }}>Sleep Architecture</h2>
             <div className="h-[240px] relative"><canvas ref={setRef("sleep")} /></div>
           </section>
@@ -341,7 +341,7 @@ export default function AnalyticsPage() {
 
         {/* Dosha + Scatter */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <section className="rounded-[32px] p-6 shadow-sm" style={{ backgroundColor: "#d4e0c2" }}>
+          <section className="rounded-[32px] p-6 shadow-sm" style={{ backgroundColor: "#ffffff", border: "1px solid #f3f4f6" }}>
             <h2 className="text-lg font-bold mb-4" style={{ color: "#1a3d1a" }}>Dosha Imbalance Map</h2>
             <div className="h-[260px] relative"><canvas ref={setRef("dosha")} /></div>
           </section>

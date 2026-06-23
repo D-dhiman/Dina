@@ -21,12 +21,22 @@ export async function GET(req) {
     const user = userResult.rows[0];
     if (!user) return Response.json({ error: 'User not found' }, { status: 404 });
 
-    return Response.json({ user, habits: habitsResult.rows });
+    // SAFE PARSING: Map row data and substitute null values with safe defaults
+    const safeHabits = (habitsResult.rows || []).map(row => ({
+      id: row.id,
+      habit_name: row.habit_name || "Untitled Habit",
+      category: row.category || "General",
+      prescribed_time: row.prescribed_time || "08:00:00",
+      frequency: row.frequency || "daily",
+      streak_count: row.streak_count || 0
+    }));
+
+    return Response.json({ user, habits: safeHabits });
   } catch (err) {
     if (err.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    console.error(err);
+    console.error("Habits GET Error:", err);
     return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -53,7 +63,7 @@ export async function POST(req) {
     if (err.message === 'Unauthorized') {
       return Response.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    console.error('Habits POST Error:', err.message, err);
-    return Response.json({ error: 'Internal server error', details: err.message }, { status: 500 });
+    console.error('Habits POST Error:', err);
+    return Response.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

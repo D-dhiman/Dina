@@ -537,7 +537,7 @@ export default function HabitsPage() {
                   </p>
                 </div>
               </div>
-              <Link href="/habits" className="z-10">
+              <Link href="/habitadd" className="z-10">
                 <button className="bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-1.5 px-4 rounded-xl flex items-center gap-1.5 text-sm transition-all shadow-sm">
                   <Plus size={16} /><span>Add Habit</span>
                 </button>

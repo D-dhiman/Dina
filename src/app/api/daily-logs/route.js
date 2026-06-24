@@ -62,10 +62,7 @@ export async function POST(req) {
           SELECT 1 FROM daily_logs dl
           WHERE dl.user_id = $1
             AND dl.log_date = $2
-            AND (SELECT COUNT(*) FROM dailies WHERE user_id = $1) > 0
-            AND (SELECT COUNT(*) FROM dailies WHERE user_id = $1 
-                 AND id IN (SELECT jsonb_array_elements(dl.dailies_completed)->>'id'))
-                = (SELECT COUNT(*) FROM dailies WHERE user_id = $1)
+            AND (dailies_completed->>'done') IN ('true','t','1')
         ) AS all_dailies_completed`,
       [prakriti_id, log_date]
     );
@@ -75,16 +72,14 @@ export async function POST(req) {
     const todayActive = hasJournalLog && allDailiesCompleted;
 
     const daysActiveResult = await pool.query(
-      `SELECT COUNT(*) AS days_active
-       FROM daily_logs dl
-       WHERE dl.user_id = $1
-         AND (habits_completed->>'done') IN ('true','t','1')
-         AND (SELECT COUNT(*) FROM dailies WHERE user_id = $1) > 0
-         AND (SELECT COUNT(*) FROM dailies WHERE user_id = $1 
-              AND id IN (SELECT jsonb_array_elements(dl.dailies_completed)->>'id'))
-             = (SELECT COUNT(*) FROM dailies WHERE user_id = $1)`,
-      [prakriti_id]
-    );
+        `SELECT COUNT(*) AS days_active
+        FROM daily_logs dl
+        WHERE dl.user_id = $1
+          AND (habits_completed->>'done') IN ('true','t','1')
+          AND (dailies_completed->>'done') IN ('true','t','1')
+        `,
+        [prakriti_id]
+      );
     const daysActive = parseInt(daysActiveResult.rows[0]?.days_active ?? '0', 10);
 
     let dayStreak = 0;
@@ -96,10 +91,7 @@ export async function POST(req) {
           WHERE dl.user_id = $1
             AND dl.log_date <= $2
             AND (dl.habits_completed->>'done') IN ('true','t','1')
-            AND (SELECT COUNT(*) FROM dailies WHERE user_id = $1) > 0
-            AND (SELECT COUNT(*) FROM dailies WHERE user_id = $1 
-                 AND id IN (SELECT jsonb_array_elements(dl.dailies_completed)->>'id'))
-                = (SELECT COUNT(*) FROM dailies WHERE user_id = $1)
+            AND (dl.dailies_completed->>'done') IN ('true','t','1')
         ), numbered AS (
           SELECT log_date, ROW_NUMBER() OVER (ORDER BY log_date DESC) AS rn
           FROM active_dates

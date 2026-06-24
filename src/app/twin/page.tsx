@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Navbar from "../components/navbar";
 import { 
-  Star, Flag, FileText, Salad, Fish, Candy, 
+  Star, FileText, Salad, Fish, Candy, 
   Plus, Trash2, Sparkles, CalendarDays, Apple
 } from "lucide-react";
 
@@ -14,9 +14,8 @@ interface ActivityItem {
 }
 
 export default function HealthReportPage() {
-  // Set this below 35 to see your danger.png image pop up instantly
+  // Set this below 35 to see the highlighted warning and danger image pop up instantly
   const backendHealthScore = 32; 
-  const backendFlagState: "urgent" | "non_immediate" | "no_need" = "urgent"; 
 
   const [dailies, setDailies] = useState<ActivityItem[]>([
     { id: "d1", name: "Meditation (Mindfulness)", category: "New" },
@@ -77,40 +76,6 @@ export default function HealthReportPage() {
     }
   };
 
-  const injectAsDaily = (name: string) => {
-    setDailies((prev) => [...prev, { id: Date.now().toString(), name, category: "New" }]);
-  };
-
-  const injectAsHabit = (name: string) => {
-    setHabits((prev) => [...prev, { id: Date.now().toString(), name, category: "New" }]);
-  };
-
-  const flagConfigs = {
-    urgent: {
-      title: "CRITICAL ACTION REQUIRED",
-      label: "Urgently need to see Dr.",
-      badgeStyle: "bg-gradient-to-r from-red-600 to-rose-700 text-white animate-pulse shadow-xl shadow-red-200/50 border-red-700",
-      riskText: "CRITICAL ALERT: Markers indicate immediate variance from healthy baseline. Close clinical evaluation recommended.",
-      preventativeText: "PAUSE NON-ESSENTIALS: Restrict excessive physical exertion. Prioritize direct tracking protocols."
-    },
-    non_immediate: {
-      title: "ATTENTION REQUIRED",
-      label: "Need Dr. but not immediate",
-      badgeStyle: "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-xl shadow-amber-200/50 border-amber-600",
-      riskText: "MODERATE VARIANCE: Minor shifts noted in tracking logs. Schedule a routine follow-up within 14 days.",
-      preventativeText: "MAINTAIN REGIMEN: Continue current lifestyle adjustments. Refrain from introducing new variables."
-    },
-    no_need: {
-      title: "STATUS CLEAR",
-      label: "No need for Dr.",
-      badgeStyle: "bg-gradient-to-r from-emerald-600 to-teal-700 text-white shadow-xl shadow-emerald-200/40 border-emerald-700",
-      riskText: "STABLE BASELINE: All metric indicators are within expected margins. No signs of physiological stress.",
-      preventativeText: "OPTIMIZE HABITS: Maintain standard preventive plans. Safe to escalate conditioning parameters."
-    }
-  };
-
-  const activeConfig = flagConfigs[backendFlagState];
-
   return (
     <div className="min-h-screen bg-[#fafb96]/10 text-gray-900 antialiased pb-24">
       <Navbar />
@@ -122,7 +87,7 @@ export default function HealthReportPage() {
           
           {/* LEFT SIDE PANEL: Profile Map */}
           <div className="md:col-span-5 h-full">
-            <div className="bg-sky-950 text-sky-200 font-mono text-xl h-full min-h-[34rem] rounded-3xl flex flex-col justify-between p-6 shadow-xl relative overflow-hidden border border-sky-800">
+            <div className="bg-sky-950 text-sky-200 font-mono text-xl h-full min-h-[28rem] rounded-3xl flex flex-col justify-between p-6 shadow-xl relative overflow-hidden border border-sky-800">
               <div className="absolute inset-0 bg-gradient-to-b from-sky-900/40 via-transparent to-black/80 pointer-events-none" />
               <div className="z-10 flex justify-between items-start">
                 <div>
@@ -133,7 +98,7 @@ export default function HealthReportPage() {
                 <div className="text-right text-xs text-sky-400 font-bold">ID: #9954-A0</div>
               </div>
               
-              <div className="z-10 flex flex-col items-center justify-center text-center py-16">
+              <div className="z-10 flex flex-col items-center justify-center text-center py-12">
                 <div className="w-32 h-32 rounded-full bg-white/10 border-4 border-white/20 flex items-center justify-center text-white text-4xl font-black mb-4 shadow-lg backdrop-blur-xs transition-transform hover:scale-105 duration-300">
                   M
                 </div>
@@ -169,31 +134,28 @@ export default function HealthReportPage() {
                 </div>
               </div>
 
-              {/* DANGER IMAGE POPUP: Appears natively from public/danger.png when score < 35 */}
+              {/* PROMINENT POPPED-UP WARNING BANNER: Only renders when score < 35 */}
               {backendHealthScore < 35 && (
-                <div className="flex items-center justify-center p-1 rounded-2xl animate-bounce mr-2">
-                  <img 
-                    src="/danger.png" 
-                    alt="Critical System Warning" 
-                    className="w-11 h-11 object-contain drop-shadow-md"
-                  />
+                <div className="flex items-center gap-2.5 mr-1 shrink-0">
+                  
+                  {/* Highlighted Speech Callout Box (Pulse animation retained for prominence, can be removed if desired) */}
+                  <div className="bg-gradient-to-r from-red-600 to-rose-600 text-white font-mono text-[11px] font-black uppercase tracking-wider px-3.5 py-2 rounded-2xl shadow-xl shadow-red-200 border border-red-700 relative animate-pulse">
+                    Need to see Dr.
+                    {/* CSS Speech Bubble Pointer Tip */}
+                    <div className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-0 h-0 border-t-[6px] border-t-transparent border-l-[8px] border-l-rose-600 border-b-[6px] border-b-transparent" />
+                  </div>
+
+                  {/* Danger Icon without bounce animation */}
+                  <div className="flex items-center justify-center p-1">
+                    <img 
+                      src="/danger.png" 
+                      alt="Critical System Warning" 
+                      className="w-12 h-12 object-contain drop-shadow-md"
+                    />
+                  </div>
+
                 </div>
               )}
-            </div>
-
-            {/* Condition Warning Priority Box */}
-            <div className={`p-5 rounded-3xl border-2 flex items-center justify-between transition-all duration-300 ${activeConfig.badgeStyle}`}>
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-xs">
-                  <Flag size={20} className="fill-white" />
-                </div>
-                <div>
-                  <span className="text-[10px] font-mono uppercase tracking-widest opacity-90 block font-bold">
-                    {activeConfig.title}
-                  </span>
-                  <span className="text-lg font-black tracking-tight">{activeConfig.label}</span>
-                </div>
-              </div>
             </div>
 
             {/* Matrix Block Explanations Panel */}
@@ -203,7 +165,7 @@ export default function HealthReportPage() {
                   <span className="w-2 h-2 rounded-full bg-sky-600" /> Risk block analysis
                 </div>
                 <p className="text-xs font-semibold text-sky-900 leading-relaxed bg-white/60 p-3 rounded-2xl border border-sky-300/40">
-                  {activeConfig.riskText}
+                  CRITICAL ALERT: Markers indicate immediate variance from healthy baseline. Close clinical evaluation recommended.
                 </p>
               </div>
 
@@ -212,7 +174,7 @@ export default function HealthReportPage() {
                   <span className="w-2 h-2 rounded-full bg-emerald-600" /> Preventive parameters
                 </div>
                 <p className="text-xs font-semibold text-emerald-900 leading-relaxed bg-white/60 p-3 rounded-2xl border border-emerald-300/40">
-                  {activeConfig.preventativeText}
+                  PAUSE NON-ESSENTIALS: Restrict excessive physical exertion. Prioritize direct tracking protocols.
                 </p>
               </div>
             </div>
@@ -238,41 +200,31 @@ export default function HealthReportPage() {
         {/* THREE COLUMN ACTION ROW */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 items-stretch">
           
-          {/* COLUMN 1: Food Prescription Block */}
-          <div className="rounded-3xl p-5 bg-gradient-to-br from-[#fef08a] to-[#fde047] border border-[#facc15]/60 shadow-md flex flex-col justify-between group relative overflow-hidden">
+          {/* COLUMN 1: Cleaned Food Prescription Block */}
+          <div className="rounded-3xl p-5 bg-gradient-to-br from-[#fef08a] to-[#fde047] border border-[#facc15]/60 shadow-md flex flex-col group relative overflow-hidden">
             <div className="absolute -right-6 -top-6 text-yellow-500/10 pointer-events-none transform group-hover:scale-110 transition-transform duration-500">
               <Apple size={90} />
             </div>
-            <div>
-              <div className="flex items-center gap-2 mb-4 relative z-10">
-                <Salad size={18} className="text-[#713f12]" />
-                <h3 className="text-sm uppercase tracking-wider text-[#713f12] font-black">Food Prescription</h3>
-              </div>
-              <div className="space-y-3 relative z-10">
-                {[
-                  { name: "Leafy greens", amount: "4–5 servings / wk", icon: <Salad size={16} className="text-emerald-700" /> },
-                  { name: "Oily fish", amount: "2 servings / wk", icon: <Fish size={16} className="text-blue-700" /> },
-                  { name: "Reduce sugar", amount: "< 25g / day", icon: <Candy size={16} className="text-amber-700" /> }
-                ].map((food, idx) => (
-                  <div key={idx} className="bg-white/70 p-2.5 rounded-2xl border border-yellow-400/30 flex flex-col gap-1.5 shadow-xs">
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        {food.icon}
-                        <span className="text-xs font-extrabold text-gray-900">{food.name}</span>
-                      </div>
-                      <span className="text-[10px] font-bold text-yellow-900/70 ml-5 block">{food.amount}</span>
-                    </div>
-                    <div className="flex gap-1 justify-end border-t border-yellow-600/10 pt-1.5">
-                      <button onClick={() => injectAsDaily(`${food.name} (${food.amount})`)} className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-md bg-emerald-700 text-white hover:bg-emerald-800 transition-colors shadow-xs">
-                        + Prescribe
-                      </button>
-                      <button onClick={() => injectAsHabit(`${food.name} (${food.amount})`)} className="text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-md bg-teal-700 text-white hover:bg-teal-800 transition-colors shadow-xs">
-                        + Prescribe
-                      </button>
-                    </div>
+            <div className="flex items-center gap-2 mb-4 relative z-10">
+              <Salad size={18} className="text-[#713f12]" />
+              <h3 className="text-sm uppercase tracking-wider text-[#713f12] font-black">Food Prescription</h3>
+            </div>
+            <div className="space-y-3 relative z-10 flex-1 flex flex-col justify-center">
+              {[
+                { name: "Leafy greens", amount: "4–5 servings / wk", icon: <Salad size={16} className="text-emerald-700" /> },
+                { name: "Oily fish", amount: "2 servings / wk", icon: <Fish size={16} className="text-blue-700" /> },
+                { name: "Reduce sugar", amount: "< 25g / day", icon: <Candy size={16} className="text-amber-700" /> }
+              ].map((food, idx) => (
+                <div key={idx} className="bg-white/70 p-3 rounded-2xl border border-yellow-400/30 flex items-center justify-between shadow-xs">
+                  <div className="flex items-center gap-2">
+                    {food.icon}
+                    <span className="text-xs font-extrabold text-gray-900">{food.name}</span>
                   </div>
-                ))}
-              </div>
+                  <span className="text-[10px] font-mono font-black text-yellow-900/80 bg-yellow-400/20 px-2 py-0.5 rounded-md">
+                    {food.amount}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 

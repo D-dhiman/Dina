@@ -235,6 +235,11 @@ export default function ProfilePage() {
         const profileData = await profileRes.json();
         const u = profileData.user;
 
+        if (!u) {
+          console.error('User data not found in response');
+          return;
+        }
+
         setProfile({
           name: u.name || "",
           age: u.date_of_birth ? getAge(u.date_of_birth).toString() : "",

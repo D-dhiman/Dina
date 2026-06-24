@@ -1,15 +1,19 @@
 "use client";
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from "../components/navbar";
 import { Plus, Flame, Sparkles, Target, Zap } from 'lucide-react';
 
 export default function DailiesPage() {
+  const router = useRouter();
   const [habitName, setHabitName] = useState("");
   const [category, setCategory] = useState<string>("exercise");
-  const [prescribedTime, setPrescribedTime] = useState("08:00"); 
-  const [lastTimeToDo, setLastTimeToDo] = useState("21:00");     
+  const [prescribedTime, setPrescribedTime] = useState("08:00");
+  const [lastTimeToDo, setLastTimeToDo] = useState("21:00");
   const [frequency, setFrequency] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const categoriesList = [
     { id: 'exercise', label: 'Exercise', desc: 'Workouts & movement' },
@@ -23,25 +27,53 @@ export default function DailiesPage() {
     { id: 'social', label: 'Social', desc: 'Family & networking' }
   ];
 
-  const handleCreateDaily = (e: React.FormEvent) => {
+  const handleCreateDaily = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!habitName.trim()) return;
+    setError(null);
 
-    console.log({
-      id: crypto.randomUUID(),
-      habitName,
-      category,
-      prescribedTime,
-      lastTimeToDo,
-      frequency,
-      streakCount: 0, 
-      longestStreak: 0,
-      createdAt: new Date().toISOString()
-    });
+    if (!habitName.trim()) {
+      setError('Please enter a name for the daily.');
+      return;
+    }
 
-    setHabitName("");
-    setPrescribedTime("08:00");
-    setLastTimeToDo("21:00");
+    const token = localStorage.getItem('token');
+    if (!token) {
+      router.push('/login');
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      const res = await fetch('/api/dailies', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          habit_name: habitName,
+          category,
+          prescribed_time: prescribedTime,
+          last_time_to_do: lastTimeToDo,
+          frequency,
+        }),
+      });
+
+      const payload = await res.json();
+      if (!res.ok) {
+        setError(payload?.error || 'Failed to save daily.');
+        setSaving(false);
+        return;
+      }
+
+      router.push('/habits');
+    } catch (err) {
+      console.error(err);
+      setError('Failed to save daily.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const getSelectedCategoryStyles = (cat: string) => {

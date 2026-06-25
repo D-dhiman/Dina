@@ -1,14 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/navbar";
 import JournalLog from "../components/journalLog";
 import { Flame, ChevronDown } from "lucide-react";
-import {
-  Chart, CategoryScale, LinearScale, LineController, LineElement,
-  PointElement, BarController, BarElement, Tooltip, Legend, Filler,
-} from "chart.js";
 import HealthCarousel from "../components/HealthCarousel";
 
 
@@ -28,7 +24,6 @@ function getGreeting() {
   if (hour < 17) return "Good afternoon";
   return "Good evening";
 }
-
 
 function getWeekDays(currentDate: string) {
   const date = new Date(currentDate);
@@ -73,14 +68,13 @@ function WeeklyPlanner({ currentDate, todayLabel }: { currentDate: string; today
   const [isAdding, setIsAdding] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [newColor, setNewColor] = useState(colorOptions[0]);
-  const [newDate, setNewDate] = useState(currentDate); // ← new: editable date
+  const [newDate, setNewDate] = useState(currentDate);
 
   const selectedDate = weekDays.find(d => d.label === selectedDay)?.fullDate;
 
-  // When opening the add form, default to the currently selected day
   useEffect(() => {
     if (isAdding && selectedDate) setNewDate(selectedDate);
-  }, [isAdding]);
+  }, [isAdding, selectedDate]);
 
   useEffect(() => {
     async function fetchPlans() {
@@ -112,7 +106,6 @@ function WeeklyPlanner({ currentDate, todayLabel }: { currentDate: string; today
       });
       const data = await res.json();
       if (data.plan) {
-        // Only add to visible plans if it falls within the current week
         const start = weekDays[0]?.fullDate;
         const end = weekDays[6]?.fullDate;
         if (newDate >= start && newDate <= end) {
@@ -248,14 +241,6 @@ interface Medication { id: string; name: string; dose: string; frequency: string
 interface Habit { id: string; habit_name: string; streak_count: number; }
 
 export default function DashboardPage() {
-  const habitContinuityChartRef = useRef<HTMLCanvasElement>(null);
-  const healthOverviewChartRef = useRef<HTMLCanvasElement>(null);
-  
-  // Declaring refs to capture the active chart instances and fix the ReferenceError
-  const habitChartInstance = useRef<Chart | null>(null);
-  const healthChartInstance = useRef<Chart | null>(null);
-
-  const [isJournalOpen, setIsJournalOpen] = useState(false);
   const router = useRouter();
 
   const [userName, setUserName] = useState("");
@@ -269,7 +254,7 @@ export default function DashboardPage() {
 
   const [currentDate, setCurrentDate] = useState("");
   const [todayLabel, setTodayLabel] = useState("Mon");
-  const [currentTime, setCurrentTime] = useState("");
+  const [, setCurrentTime] = useState(""); // Kept variable layout stable if state logic relies on placeholder
 
   // ── Fetch dashboard data ──────────────────────────────────────────
   useEffect(() => {
@@ -304,9 +289,9 @@ export default function DashboardPage() {
       }
     }
     fetchDashboard();
-  }, []);
+  }, [router]);
 
-  // ── Charts ────────────────────────────────────────────────────────
+  // ── Date-Time API initialization ──────────────────────────────────
   useEffect(() => {
     async function fetchDateTime() {
     if (navigator.geolocation) {
@@ -452,24 +437,13 @@ export default function DashboardPage() {
     }
 
     if (!loading) {
-      fetchGraphData();
+      fetchDateTime();
     }
-
-    // Comprehensive unmount strategy using the correct ref properties
-    return () => { 
-      if (habitChartInstance.current) {
-        habitChartInstance.current.destroy();
-        habitChartInstance.current = null;
-      }
-      if (healthChartInstance.current) {
-        healthChartInstance.current.destroy();
-        healthChartInstance.current = null;
-      }
-    };
   }, [loading]);
 
+  const [isJournalOpen, setIsJournalOpen] = useState(false);
+
   const habitsCompleted = Object.values(checkedHabits).filter(Boolean).length;
-  const dailiesPending = dailies.length - Object.values(checkedHabits).filter(Boolean).length;
 
   const sections = [
     {
@@ -494,7 +468,6 @@ export default function DashboardPage() {
     },
   ];
 
-  // Group medications by time of day
   const morningMeds = medications.filter(m => {
     const hour = parseInt(m.consumption_time?.slice(0, 2) || "0");
     return hour < 12;
@@ -690,30 +663,6 @@ export default function DashboardPage() {
           <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isJournalOpen ? "max-h-[3000px] opacity-100" : "max-h-0 opacity-0"}`}>
             <div className="px-3 pb-3"><JournalLog /></div>
           </div>
-        </div>
-
-        {/* Charts */}
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <section className="rounded-3xl bg-white p-6 shadow-sm border border-gray-200">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Habit continuity</p>
-                <h2 className="text-xl font-semibold text-slate-900">Weekly streak</h2>
-              </div>
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-800">{dayStreak} days</span>
-            </div>
-            <div className="h-72"><canvas ref={habitContinuityChartRef}></canvas></div>
-          </section>
-          <section className="rounded-3xl bg-white p-6 shadow-sm border border-gray-200">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Overall health</p>
-                <h2 className="text-xl font-semibold text-slate-900">Health score trend</h2>
-              </div>
-              <span className="rounded-full bg-sky-50 px-3 py-1 text-sm font-semibold text-sky-800">Avg 86%</span>
-            </div>
-            <div className="h-72"><canvas ref={healthOverviewChartRef}></canvas></div>
-          </section>
         </div>
 
       </main>

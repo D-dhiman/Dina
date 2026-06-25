@@ -1,20 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/navbar";
 import JournalLog from "../components/journalLog";
 import { Flame, ChevronDown } from "lucide-react";
-import {
-  Chart, CategoryScale, LinearScale, LineController, LineElement,
-  PointElement, BarController, BarElement, Tooltip, Legend, Filler,
-} from "chart.js";
 import HealthCarousel from "../components/HealthCarousel";
-
-Chart.register(
-  CategoryScale, LinearScale, LineController, LineElement,
-  PointElement, BarController, BarElement, Tooltip, Legend, Filler
-);
 
 function authHeaders() {
   const token = localStorage.getItem("token");
@@ -27,7 +18,6 @@ function getGreeting() {
   if (hour < 17) return "Good afternoon";
   return "Good evening";
 }
-
 
 function getWeekDays(currentDate: string) {
   const date = new Date(currentDate);
@@ -72,14 +62,13 @@ function WeeklyPlanner({ currentDate, todayLabel }: { currentDate: string; today
   const [isAdding, setIsAdding] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [newColor, setNewColor] = useState(colorOptions[0]);
-  const [newDate, setNewDate] = useState(currentDate); // ← new: editable date
+  const [newDate, setNewDate] = useState(currentDate);
 
   const selectedDate = weekDays.find(d => d.label === selectedDay)?.fullDate;
 
-  // When opening the add form, default to the currently selected day
   useEffect(() => {
     if (isAdding && selectedDate) setNewDate(selectedDate);
-  }, [isAdding]);
+  }, [isAdding, selectedDate]);
 
   useEffect(() => {
     async function fetchPlans() {
@@ -111,7 +100,6 @@ function WeeklyPlanner({ currentDate, todayLabel }: { currentDate: string; today
       });
       const data = await res.json();
       if (data.plan) {
-        // Only add to visible plans if it falls within the current week
         const start = weekDays[0]?.fullDate;
         const end = weekDays[6]?.fullDate;
         if (newDate >= start && newDate <= end) {
@@ -247,14 +235,6 @@ interface Medication { id: string; name: string; dose: string; frequency: string
 interface Habit { id: string; habit_name: string; streak_count: number; }
 
 export default function DashboardPage() {
-  const habitContinuityChartRef = useRef<HTMLCanvasElement>(null);
-  const healthOverviewChartRef = useRef<HTMLCanvasElement>(null);
-  
-  // Declaring refs to capture the active chart instances and fix the ReferenceError
-  const habitChartInstance = useRef<Chart | null>(null);
-  const healthChartInstance = useRef<Chart | null>(null);
-
-  const [isJournalOpen, setIsJournalOpen] = useState(false);
   const router = useRouter();
 
   const [userName, setUserName] = useState("");
@@ -268,7 +248,7 @@ export default function DashboardPage() {
 
   const [currentDate, setCurrentDate] = useState("");
   const [todayLabel, setTodayLabel] = useState("Mon");
-  const [currentTime, setCurrentTime] = useState("");
+  const [, setCurrentTime] = useState(""); // Kept variable layout stable if state logic relies on placeholder
 
   // ── Fetch dashboard data ──────────────────────────────────────────
   useEffect(() => {
@@ -303,24 +283,22 @@ export default function DashboardPage() {
       }
     }
     fetchDashboard();
-  }, []);
+  }, [router]);
 
-  // ── Charts ────────────────────────────────────────────────────────
+  // ── Date-Time API initialization ──────────────────────────────────
   useEffect(() => {
     async function fetchDateTime() {
       try {
         const res = await fetch("http://localhost:8000/datetime/auto");
         const data = await res.json();
-        setCurrentDate(data.date);           // "2026-06-15"
-        setCurrentTime(data.time);           // "14:32:00"
-        // Map day_of_week to short label
+        setCurrentDate(data.date);           
+        setCurrentTime(data.time);           
         const dayMap: Record<string, string> = {
           Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed",
           Thursday: "Thu", Friday: "Fri", Saturday: "Sat", Sunday: "Sun",
         };
         setTodayLabel(dayMap[data.day_of_week] || "Mon");
       } catch (err) {
-        // Fallback to browser date if API is down
         const now = new Date();
         const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
         setCurrentDate(now.toISOString().split("T")[0]);
@@ -328,121 +306,14 @@ export default function DashboardPage() {
       }
     }
 
-    fetchDateTime();
-
-    async function fetchGraphData() {
-      try {
-        const [habitCompRes, healthRes] = await Promise.all([
-          fetch('/api/habit-completions?days=7', { headers: authHeaders() }),
-          fetch('/api/daily-logs', { headers: authHeaders() })
-        ]);
-
-        let habitContinuityData: number[] = [];
-        let healthScoreData: number[] = [];
-        let habitLabels: string[] = [];
-        let healthLabels: string[] = [];
-
-        // Fetch habit completion data (last 7 days)
-        if (habitCompRes.ok) {
-          const habitData = await habitCompRes.json();
-          if (habitData.completionCounts && habitData.completionCounts.length > 0) {
-            habitContinuityData = habitData.completionCounts.map((item: any) => item.count);
-            habitLabels = habitData.completionCounts.map((item: any) => {
-              const date = new Date(item.date);
-              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            });
-          }
-        }
-
-        // Fetch health score data from daily logs (last 7 days)
-        if (healthRes.ok) {
-          const logData = await healthRes.json();
-          const logs = (logData.logs || []).sort((a: any, b: any) => 
-            new Date(a.log_date).getTime() - new Date(b.log_date).getTime()
-          ).slice(-7);
-
-          if (logs.length > 0) {
-            healthScoreData = logs.map((log: any) => log.mood_score || 0);
-            healthLabels = logs.map((log: any) => {
-              const date = new Date(log.log_date);
-              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            });
-          }
-        }
-
-        const habitChartCanvas = habitContinuityChartRef.current;
-        const healthChartCanvas = healthOverviewChartRef.current;
-        if (!habitChartCanvas || !healthChartCanvas) return;
-
-        const habitCtx = habitChartCanvas.getContext("2d");
-        const healthCtx = healthChartCanvas.getContext("2d");
-        if (!habitCtx || !healthCtx) return;
-
-        // Destroy existing charts if they exist
-        if (habitChartInstance.current) habitChartInstance.current.destroy();
-        if (healthChartInstance.current) healthChartInstance.current.destroy();
-
-        habitChartInstance.current = new Chart(habitCtx, {
-          type: "line",
-          data: {
-            labels: habitLabels,
-            datasets: [{
-              label: "Habit continuity",
-              data: habitContinuityData,
-              borderColor: "rgb(34, 197, 94)",
-              backgroundColor: "rgba(34, 197, 94, 0.15)",
-              fill: true, tension: 0.35, pointRadius: 4,
-            }],
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false }, tooltip: { intersect: false, mode: "index" } },
-            scales: { y: { beginAtZero: true, suggestedMax: 10, ticks: { stepSize: 2 } } },
-          },
-        });
-
-        healthChartInstance.current = new Chart(healthCtx, {
-          type: "bar",
-          data: {
-            labels: healthLabels,
-            datasets: [{
-              label: "Overall health score",
-              data: healthScoreData,
-              backgroundColor: "rgba(59, 130, 246, 0.8)",
-              borderRadius: 12, barPercentage: 0.65,
-            }],
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false }, tooltip: { intersect: false, mode: "index" } },
-            scales: { y: { beginAtZero: true, suggestedMax: 100, ticks: { stepSize: 20 } } },
-          },
-        });
-
-      } catch (err) {
-        console.error("Failed to fetch graph data", err);
-      }
-    }
-
     if (!loading) {
-      fetchGraphData();
+      fetchDateTime();
     }
-
-    // Comprehensive unmount strategy using the correct ref properties
-    return () => { 
-      if (habitChartInstance.current) {
-        habitChartInstance.current.destroy();
-        habitChartInstance.current = null;
-      }
-      if (healthChartInstance.current) {
-        healthChartInstance.current.destroy();
-        healthChartInstance.current = null;
-      }
-    };
   }, [loading]);
 
+  const [isJournalOpen, setIsJournalOpen] = useState(false);
+
   const habitsCompleted = Object.values(checkedHabits).filter(Boolean).length;
-  const dailiesPending = dailies.length - Object.values(checkedHabits).filter(Boolean).length;
 
   const sections = [
     {
@@ -467,7 +338,6 @@ export default function DashboardPage() {
     },
   ];
 
-  // Group medications by time of day
   const morningMeds = medications.filter(m => {
     const hour = parseInt(m.consumption_time?.slice(0, 2) || "0");
     return hour < 12;
@@ -663,30 +533,6 @@ export default function DashboardPage() {
           <div className={`overflow-hidden transition-all duration-200 ease-in-out ${isJournalOpen ? "max-h-[3000px] opacity-100" : "max-h-0 opacity-0"}`}>
             <div className="px-3 pb-3"><JournalLog /></div>
           </div>
-        </div>
-
-        {/* Charts */}
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <section className="rounded-3xl bg-white p-6 shadow-sm border border-gray-200">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Habit continuity</p>
-                <h2 className="text-xl font-semibold text-slate-900">Weekly streak</h2>
-              </div>
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-800">{dayStreak} days</span>
-            </div>
-            <div className="h-72"><canvas ref={habitContinuityChartRef}></canvas></div>
-          </section>
-          <section className="rounded-3xl bg-white p-6 shadow-sm border border-gray-200">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm uppercase tracking-[0.24em] text-slate-400">Overall health</p>
-                <h2 className="text-xl font-semibold text-slate-900">Health score trend</h2>
-              </div>
-              <span className="rounded-full bg-sky-50 px-3 py-1 text-sm font-semibold text-sky-800">Avg 86%</span>
-            </div>
-            <div className="h-72"><canvas ref={healthOverviewChartRef}></canvas></div>
-          </section>
         </div>
 
       </main>

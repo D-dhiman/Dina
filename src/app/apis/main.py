@@ -24,6 +24,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import init_pools, close_pools
 from routers import twin
 
+from routers import timezone 
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # .env LOADER
@@ -110,6 +112,7 @@ app.add_middleware(
 # ─────────────────────────────────────────────────────────────────────────────
 
 app.include_router(twin.router, prefix="/twin", tags=["Digital Twin"])
+app.include_router(timezone.router, prefix="/datetime", tags=["DateTime"])
 
 
 # ─────────────────────────────────────────────────────────────────────────────

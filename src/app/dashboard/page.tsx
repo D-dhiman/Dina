@@ -11,6 +11,7 @@ import {
 } from "chart.js";
 import HealthCarousel from "../components/HealthCarousel";
 
+
 Chart.register(
   CategoryScale, LinearScale, LineController, LineElement,
   PointElement, BarController, BarElement, Tooltip, Legend, Filler
@@ -308,27 +309,53 @@ export default function DashboardPage() {
   // ── Charts ────────────────────────────────────────────────────────
   useEffect(() => {
     async function fetchDateTime() {
-      try {
-        const res = await fetch("http://localhost:8000/datetime/auto");
-        const data = await res.json();
-        setCurrentDate(data.date);           // "2026-06-15"
-        setCurrentTime(data.time);           // "14:32:00"
-        // Map day_of_week to short label
-        const dayMap: Record<string, string> = {
-          Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed",
-          Thursday: "Thu", Friday: "Fri", Saturday: "Sat", Sunday: "Sun",
-        };
-        setTodayLabel(dayMap[data.day_of_week] || "Mon");
-      } catch (err) {
-        // Fallback to browser date if API is down
-        const now = new Date();
-        const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        setCurrentDate(now.toISOString().split("T")[0]);
-        setTodayLabel(labels[now.getDay()]);
-      }
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          try {
+            const res = await fetch(
+              `http://localhost:8000/datetime/geo?lat=${latitude}&lon=${longitude}`
+            );
+            const data = await res.json();
+            setCurrentDate(data.date);
+            setCurrentTime(data.time);
+            const dayMap: Record<string, string> = {
+              Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed",
+              Thursday: "Thu", Friday: "Fri", Saturday: "Sat", Sunday: "Sun",
+            };
+            setTodayLabel(dayMap[data.day_of_week] || "Mon");
+          } catch {
+            fallbackToIP();
+          }
+        },
+        () => fallbackToIP()
+      );
+    } else {
+      fallbackToIP();
     }
+  }
 
-    fetchDateTime();
+  async function fallbackToIP() {
+    try {
+      const res = await fetch("http://localhost:8000/datetime/auto");
+      const data = await res.json();
+      setCurrentDate(data.date);
+      setCurrentTime(data.time);
+      const dayMap: Record<string, string> = {
+        Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed",
+        Thursday: "Thu", Friday: "Fri", Saturday: "Sat", Sunday: "Sun",
+      };
+      setTodayLabel(dayMap[data.day_of_week] || "Mon");
+    } catch {
+      const now = new Date();
+      const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      setCurrentDate(now.toISOString().split("T")[0]);
+      setTodayLabel(labels[now.getDay()]);
+    }
+  }
+
+  fetchDateTime();
 
     async function fetchGraphData() {
       try {

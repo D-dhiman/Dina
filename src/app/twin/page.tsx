@@ -80,7 +80,7 @@ export default function HealthReportPage() {
     <div className="min-h-screen bg-[#fafb96]/10 text-gray-900 antialiased pb-24">
       <Navbar />
 
-      <main className="max-w-5xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
         
         {/* UPPER MAIN LAYOUT LAYER */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">

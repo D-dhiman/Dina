@@ -439,6 +439,163 @@ async def save_wellness_assessment(
 # PREDICTIONS  (new table — stores LLM forecast + habit/daily verdicts)
 # ─────────────────────────────────────────────────────────────────────────────
 
+
+async def get_past_predictions_with_actuals(
+    pool: asyncpg.Pool, patient_id: str, last_n: int = 5
+) -> list:
+    """
+    Fetches the last N predictions for a patient and, for each one,
+    finds the wellness assessment whose date is closest to each predicted
+    horizon (day 7, 14, 30) to compute actual vs predicted accuracy.
+
+    Returns a list of dicts, each containing:
+        - prediction metadata (date, health_score at time of prediction)
+        - per-horizon accuracy: predicted_score, actual_score, error, days_off
+        - realized_compliance: estimate of which scenario was closer to reality
+    """
+    # Fetch last N predictions oldest-first
+    pred_rows = await pool.fetch(
+        """
+        SELECT id, forecast_date, health_score, high_compliance, low_compliance,
+               created_at
+        FROM predictions
+        WHERE user_id = $1
+        ORDER BY created_at DESC
+        LIMIT $2
+        """,
+        patient_id, last_n,
+    )
+    if not pred_rows:
+        return []
+
+    # Fetch all wellness assessments for this patient (for actual score lookup)
+    assessment_rows = await pool.fetch(
+        """
+        SELECT assessment_date, total_score, section_scores
+        FROM wellness_assessments
+        WHERE user_id = $1
+        ORDER BY assessment_date ASC
+        """,
+        patient_id,
+    )
+
+    def find_closest_assessment(target_date, assessments):
+        """Find assessment with date closest to target_date."""
+        if not assessments:
+            return None
+        closest = min(
+            assessments,
+            key=lambda a: abs((a["assessment_date"] - target_date).days)
+        )
+        days_off = abs((closest["assessment_date"] - target_date).days)
+        # Only use if within 7 days of the target — otherwise too stale
+        return (closest, days_off) if days_off <= 7 else None
+
+    results = []
+    for pred in reversed(pred_rows):   # oldest first
+        forecast_date = pred["forecast_date"]
+
+        # Parse compliance scenarios
+        high = pred["high_compliance"] or {}
+        low  = pred["low_compliance"]  or {}
+        if isinstance(high, str):
+            try: high = json.loads(high)
+            except: high = {}
+        if isinstance(low, str):
+            try: low = json.loads(low)
+            except: low = {}
+
+        horizons_data = []
+        total_error   = 0.0
+        n_horizons    = 0
+        high_error    = 0.0
+        low_error     = 0.0
+
+        for horizon in [7, 14, 30]:
+            target_date = forecast_date + __import__("datetime").timedelta(days=horizon)
+
+            # Get predicted scores for this horizon
+            high_pred = next((h["predicted_health_score"] for h in high.get("horizons", []) if h["day"] == horizon), None)
+            low_pred  = next((h["predicted_health_score"] for h in low.get("horizons",  []) if h["day"] == horizon), None)
+
+            # Find actual score closest to this date
+            match = find_closest_assessment(target_date, assessment_rows)
+            if match:
+                actual_assessment, days_off = match
+                actual_score = actual_assessment["total_score"]
+
+                error_vs_high = (high_pred - actual_score) if high_pred is not None else None
+                error_vs_low  = (low_pred  - actual_score) if low_pred  is not None else None
+
+                # Overall error uses whichever scenario was closer to actual
+                if high_pred is not None and low_pred is not None:
+                    if abs(error_vs_high) <= abs(error_vs_low):
+                        best_error = error_vs_high
+                        closer_scenario = "high_compliance"
+                    else:
+                        best_error = error_vs_low
+                        closer_scenario = "low_compliance"
+                elif high_pred is not None:
+                    best_error = error_vs_high
+                    closer_scenario = "high_compliance"
+                else:
+                    best_error = None
+                    closer_scenario = None
+
+                if best_error is not None:
+                    total_error += best_error
+                    n_horizons  += 1
+                if error_vs_high is not None: high_error += abs(error_vs_high)
+                if error_vs_low  is not None: low_error  += abs(error_vs_low)
+
+                horizons_data.append({
+                    "day":             horizon,
+                    "target_date":     str(target_date),
+                    "actual_date":     str(actual_assessment["assessment_date"]),
+                    "days_off":        days_off,
+                    "predicted_high":  round(high_pred, 1) if high_pred is not None else None,
+                    "predicted_low":   round(low_pred,  1) if low_pred  is not None else None,
+                    "actual_score":    round(actual_score, 1),
+                    "error_vs_high":   round(error_vs_high, 1) if error_vs_high is not None else None,
+                    "error_vs_low":    round(error_vs_low,  1) if error_vs_low  is not None else None,
+                    "closer_scenario": closer_scenario,
+                })
+            else:
+                # No assessment close enough to this horizon yet
+                horizons_data.append({
+                    "day":            horizon,
+                    "target_date":    str(target_date),
+                    "actual_date":    None,
+                    "days_off":       None,
+                    "predicted_high": round(high_pred, 1) if high_pred is not None else None,
+                    "predicted_low":  round(low_pred,  1) if low_pred  is not None else None,
+                    "actual_score":   None,
+                    "error_vs_high":  None,
+                    "error_vs_low":   None,
+                    "closer_scenario": None,
+                })
+
+        # Bias: positive = we over-predicted, negative = under-predicted
+        avg_bias = round(total_error / n_horizons, 2) if n_horizons > 0 else None
+
+        # Realized compliance: whichever scenario had lower total absolute error
+        if n_horizons > 0:
+            realized_compliance = "high_compliance" if high_error <= low_error else "low_compliance"
+        else:
+            realized_compliance = None
+
+        results.append({
+            "prediction_id":      str(pred["id"]),
+            "prediction_date":    str(forecast_date),
+            "health_score_at_prediction": round(pred["health_score"], 1) if pred["health_score"] else None,
+            "horizons":           horizons_data,
+            "avg_bias":           avg_bias,   # + = over-predicted, - = under-predicted
+            "realized_compliance": realized_compliance,
+            "n_horizons_verified": n_horizons,
+        })
+
+    return results
+
 async def save_prediction(pool: asyncpg.Pool, patient_id: str, prediction: dict) -> str:
     """
     Persists one LLM run. `new` habit/daily suggestions stay inside

@@ -268,7 +268,7 @@ def format_form_history_for_prompt(submissions: list) -> str:
     return "\n".join(lines)
 
 
-def serialize(user, logs, meds, conditions, existing_habits, recs, form_result, form_history) -> str:
+def serialize(user, logs, meds, conditions, existing_habits, recs, form_result, form_history, accuracy_block: str = '', calibration_adj: float = 0.0) -> str:
     baseline_block = (
         f"Patient baseline (Prakriti from AYUSH registration):\n"
         f"  Name            : {user['name']}\n"
@@ -334,6 +334,13 @@ def serialize(user, logs, meds, conditions, existing_habits, recs, form_result, 
     history_form_block = format_form_history_for_prompt(form_history)
     recs_block         = format_recommendations_for_prompt(recs)
 
+    calibration_note = (
+        f"  Calibration adjustment for this forecast: {calibration_adj:+.2f} pts\n"
+        f"  (Apply this correction to all horizon scores — positive means reduce, negative means increase)"
+        if calibration_adj != 0.0 else
+        "  Calibration adjustment: none (first prediction or no verified data yet)"
+    )
+
     task_block = (
         "Your task:\n"
         "  1. Write a 2-3 sentence health_interpretation for this patient.\n"
@@ -343,13 +350,94 @@ def serialize(user, logs, meds, conditions, existing_habits, recs, form_result, 
         "       - Do NOT invent recommendations outside the provided rule list.\n"
         "       - Prioritise rules with highest positive scores.\n"
         "  5. Forecast health score at day 7, 14, 30 under high and low compliance.\n"
+        "       - Apply the calibration adjustment shown above to all horizon scores.\n"
+        "       - Consider past realized compliance when weighting scenarios.\n"
         "  6. Set doctor_referral=true if warranted.\n\n"
+        + calibration_note + "\n\n"
         "  Respond ONLY with the JSON structure specified in your system prompt."
     )
 
-    return "\n\n".join([baseline_block, meds_block, conds_block, habits_block,
-                          history_block, history_form_block, form_block, recs_block, task_block])
+    blocks = [baseline_block, meds_block, conds_block, habits_block,
+              history_block, history_form_block, form_block, recs_block]
+    if accuracy_block:
+        blocks.append(accuracy_block)
+    blocks.append(task_block)
+    return "\n\n".join(blocks)
 
+
+
+def format_prediction_accuracy_for_prompt(past_predictions: list) -> str:
+    """
+    Formats past prediction accuracy into a prompt block.
+    The LLM uses this to:
+      1. See where it over/under-predicted previously
+      2. Self-correct its reasoning for this prediction
+    Also returns a calibration dict used to adjust forecast math.
+    """
+    if not past_predictions:
+        return "Past prediction accuracy: no prior predictions available — this is the first assessment."
+
+    lines = [
+        f"Past prediction accuracy (last {len(past_predictions)} predictions, oldest → newest):",
+        f"  + error = we over-predicted (patient did worse than forecast)",
+        f"  - error = we under-predicted (patient did better than forecast)\n",
+    ]
+
+    total_biases = []
+
+    for p in past_predictions:
+        lines.append(f"  Prediction on {p['prediction_date']}  (score at time: {p['health_score_at_prediction']}/100)")
+        verified = [h for h in p["horizons"] if h["actual_score"] is not None]
+        pending  = [h for h in p["horizons"] if h["actual_score"] is None]
+
+        if verified:
+            for h in verified:
+                err_h = f"{h['error_vs_high']:+.1f}" if h["error_vs_high"] is not None else "N/A"
+                err_l = f"{h['error_vs_low']:+.1f}"  if h["error_vs_low"]  is not None else "N/A"
+                closer = "✓ high" if h["closer_scenario"] == "high_compliance" else ("✓ low" if h["closer_scenario"] == "low_compliance" else "")
+                lines.append(
+                    f"    Day +{h['day']:2d}: predicted high={h['predicted_high']} low={h['predicted_low']} "
+                    f"→ actual={h['actual_score']} "
+                    f"(err vs high={err_h}, vs low={err_l})  {closer}"
+                )
+        if pending:
+            pending_days = [f"+{h['day']}d" for h in pending]
+            lines.append(f"    Horizons not yet verifiable: {', '.join(pending_days)} (future dates)")
+
+        if p["avg_bias"] is not None:
+            bias_dir = "over-predicted" if p["avg_bias"] > 0 else ("under-predicted" if p["avg_bias"] < 0 else "accurate")
+            lines.append(f"    Overall bias: {p['avg_bias']:+.1f} pts ({bias_dir})")
+            lines.append(f"    Patient realized: {(p['realized_compliance'] or '?').replace('_', ' ')}")
+            total_biases.append(p["avg_bias"])
+
+    # Summary calibration signal
+    if total_biases:
+        mean_bias = round(sum(total_biases) / len(total_biases), 2)
+        direction = "consistently over-predicting" if mean_bias > 1 else (
+                    "consistently under-predicting" if mean_bias < -1 else "well-calibrated")
+        lines.append(f"\n  Calibration summary across {len(total_biases)} verified prediction(s):")
+        lines.append(f"    Mean bias: {mean_bias:+.2f} pts — model is {direction}")
+        if mean_bias > 2:
+            lines.append(f"    ⚠ Adjust this prediction DOWN by ~{abs(mean_bias):.1f} pts per horizon")
+        elif mean_bias < -2:
+            lines.append(f"    ⚠ Adjust this prediction UP by ~{abs(mean_bias):.1f} pts per horizon")
+        else:
+            lines.append(f"    ✓ Minor calibration adjustment needed — stay close to base forecast")
+
+    return "\n".join(lines)
+
+
+def compute_calibration_adjustment(past_predictions: list) -> float:
+    """
+    Returns the mean bias across verified past predictions.
+    Positive = model over-predicts → subtract from forecast scores.
+    Negative = model under-predicts → add to forecast scores.
+    Returns 0.0 if no verified predictions exist.
+    """
+    biases = [p["avg_bias"] for p in past_predictions if p.get("avg_bias") is not None]
+    if not biases:
+        return 0.0
+    return round(sum(biases) / len(biases), 2)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SYSTEM PROMPT  (same as run_twin.py — kept here to avoid importing a CLI script)
@@ -397,6 +485,15 @@ Ayurvedic forecasting rules:
   - Discard a habit only if it is actively worsening the patient's current Vikriti
   - Do not invent recommendations outside the provided rule-based list
   - Flag doctor_referral if: not improving after 14 days, two doshas severely imbalanced, or acute worsening
+
+Past prediction calibration (IMPORTANT — apply these corrections to your forecast):
+  - You will receive a block showing your past predictions vs what actually happened
+  - If mean bias is positive (you over-predicted): reduce your forecast scores accordingly
+  - If mean bias is negative (you under-predicted): increase your forecast scores accordingly
+  - If the patient consistently achieved low_compliance scenario: weight your forecast toward low compliance
+  - If the patient consistently achieved high_compliance scenario: weight your forecast toward high compliance
+  - The calibration adjustment is a signal, not a hard rule — use clinical Ayurvedic reasoning alongside it
+  - If no past predictions exist: make your best forecast using Ayurvedic principles alone
 
 Output ONLY valid JSON, no text before or after. Use exactly this structure:
 {
@@ -467,7 +564,8 @@ async def assess(
     conditions   = await twin_db.get_active_conditions(dina, patient_id)
     habits       = await twin_db.get_habits(dina, patient_id)
     dailies_list = await twin_db.get_dailies(dina, patient_id)
-    form_history = await twin_db.get_wellness_assessments(dina, patient_id, last_n=5)
+    form_history     = await twin_db.get_wellness_assessments(dina, patient_id, last_n=5)
+    past_predictions = await twin_db.get_past_predictions_with_actuals(dina, patient_id, last_n=5)
 
     # ── 2. Read latest form submission ────────────────────────────────────────
     if not form_history:
@@ -481,6 +579,10 @@ async def assess(
     prev       = form_history[-2] if len(form_history) >= 2 else None
     form_result = _submission_to_result(latest, prev)
 
+    # ── Calibration adjustment from past prediction accuracy ─────────────────
+    calibration_adj = compute_calibration_adjustment(past_predictions)
+    accuracy_block  = format_prediction_accuracy_for_prompt(past_predictions)
+
     # ── 3. Recommendation engine (real rules DB) ──────────────────────────────
     city = (user.get("patient_history") or {}).get("location") or user.get("location")
     recs = await engine.run_async(
@@ -492,7 +594,8 @@ async def assess(
     )
 
     # ── 4. Build prompt + call LLM ────────────────────────────────────────────
-    prompt = serialize(user, logs, meds, conditions, habits, recs, form_result, form_history)
+    prompt = serialize(user, logs, meds, conditions, habits, recs, form_result, form_history,
+                       accuracy_block=accuracy_block, calibration_adj=calibration_adj)
     raw    = await call_groq(prompt, SYSTEM_PROMPT)
 
     # ── 5. Parse + validate + save ────────────────────────────────────────────

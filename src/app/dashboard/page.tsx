@@ -1,6 +1,18 @@
 "use client";
-
-import { useEffect, useState } from "react";
+import { 
+  Chart, // <-- Make sure this is here!
+  CategoryScale, 
+  LinearScale, 
+  LineController, 
+  LineElement,
+  PointElement, 
+  BarController, 
+  BarElement, 
+  Tooltip, 
+  Legend, 
+  Filler 
+} from 'chart.js';
+import { useEffect, useState,useRef } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/navbar";
 import JournalLog from "../components/journalLog";
@@ -243,6 +255,14 @@ interface Habit { id: string; habit_name: string; streak_count: number; }
 
 export default function DashboardPage() {
   const router = useRouter();
+
+  // 1. Create references for the HTML <canvas> elements
+const habitContinuityChartRef = useRef<HTMLCanvasElement | null>(null);
+const healthOverviewChartRef = useRef<HTMLCanvasElement | null>(null);
+
+// 2. Create persistent references for the Chart instances to prevent duplication
+const habitChartInstance = useRef<any>(null);
+const healthChartInstance = useRef<any>(null);
 
   const [userName, setUserName] = useState("");
   const [dayStreak, setDayStreak] = useState(0);

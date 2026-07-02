@@ -17,9 +17,6 @@ from db import (
 )
 
 router = APIRouter()
-<<<<<<< HEAD
-logger = logging.getLogger("uvicorn.error")
-=======
 engine = RecommendationEngine()
 
 GROQ_MODEL = "llama-3.3-70b-versatile"
@@ -503,7 +500,6 @@ Output ONLY valid JSON, no text before or after. Use exactly this structure:
 # ─────────────────────────────────────────────────────────────────────────────
 # ROUTES
 # ─────────────────────────────────────────────────────────────────────────────
->>>>>>> d368db15621631d889ec206a67e3021fb919ed4a
 
 @router.post("/assess/{patient_id}")
 async def assess(

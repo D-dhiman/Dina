@@ -18,6 +18,7 @@ import Navbar from "../components/navbar";
 import JournalLog from "../components/journalLog";
 import { Flame, ChevronDown } from "lucide-react";
 import HealthCarousel from "../components/HealthCarousel";
+import { BarController, BarElement, CategoryScale, Chart, Filler, Legend, LinearScale, LineController, LineElement, PointElement, Tooltip } from "chart.js";
 
 
 Chart.register(
@@ -362,99 +363,99 @@ const healthChartInstance = useRef<any>(null);
 
   fetchDateTime();
 
-    async function fetchGraphData() {
-      try {
-        const [habitCompRes, healthRes] = await Promise.all([
-          fetch('/api/habit-completions?days=7', { headers: authHeaders() }),
-          fetch('/api/daily-logs', { headers: authHeaders() })
-        ]);
+    // async function fetchGraphData() {
+    //   try {
+    //     const [habitCompRes, healthRes] = await Promise.all([
+    //       fetch('/api/habit-completions?days=7', { headers: authHeaders() }),
+    //       fetch('/api/daily-logs', { headers: authHeaders() })
+    //     ]);
 
-        let habitContinuityData: number[] = [];
-        let healthScoreData: number[] = [];
-        let habitLabels: string[] = [];
-        let healthLabels: string[] = [];
+    //     let habitContinuityData: number[] = [];
+    //     let healthScoreData: number[] = [];
+    //     let habitLabels: string[] = [];
+    //     let healthLabels: string[] = [];
 
-        // Fetch habit completion data (last 7 days)
-        if (habitCompRes.ok) {
-          const habitData = await habitCompRes.json();
-          if (habitData.completionCounts && habitData.completionCounts.length > 0) {
-            habitContinuityData = habitData.completionCounts.map((item: any) => item.count);
-            habitLabels = habitData.completionCounts.map((item: any) => {
-              const date = new Date(item.date);
-              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            });
-          }
-        }
+    //     // Fetch habit completion data (last 7 days)
+    //     if (habitCompRes.ok) {
+    //       const habitData = await habitCompRes.json();
+    //       if (habitData.completionCounts && habitData.completionCounts.length > 0) {
+    //         habitContinuityData = habitData.completionCounts.map((item: any) => item.count);
+    //         habitLabels = habitData.completionCounts.map((item: any) => {
+    //           const date = new Date(item.date);
+    //           return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    //         });
+    //       }
+    //     }
 
-        // Fetch health score data from daily logs (last 7 days)
-        if (healthRes.ok) {
-          const logData = await healthRes.json();
-          const logs = (logData.logs || []).sort((a: any, b: any) => 
-            new Date(a.log_date).getTime() - new Date(b.log_date).getTime()
-          ).slice(-7);
+    //     // Fetch health score data from daily logs (last 7 days)
+    //     if (healthRes.ok) {
+    //       const logData = await healthRes.json();
+    //       const logs = (logData.logs || []).sort((a: any, b: any) => 
+    //         new Date(a.log_date).getTime() - new Date(b.log_date).getTime()
+    //       ).slice(-7);
 
-          if (logs.length > 0) {
-            healthScoreData = logs.map((log: any) => log.mood_score || 0);
-            healthLabels = logs.map((log: any) => {
-              const date = new Date(log.log_date);
-              return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            });
-          }
-        }
+    //       if (logs.length > 0) {
+    //         healthScoreData = logs.map((log: any) => log.mood_score || 0);
+    //         healthLabels = logs.map((log: any) => {
+    //           const date = new Date(log.log_date);
+    //           return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    //         });
+    //       }
+    //     }
 
-        const habitChartCanvas = habitContinuityChartRef.current;
-        const healthChartCanvas = healthOverviewChartRef.current;
-        if (!habitChartCanvas || !healthChartCanvas) return;
+    //     const habitChartCanvas = habitContinuityChartRef.current;
+    //     const healthChartCanvas = healthOverviewChartRef.current;
+    //     if (!habitChartCanvas || !healthChartCanvas) return;
 
-        const habitCtx = habitChartCanvas.getContext("2d");
-        const healthCtx = healthChartCanvas.getContext("2d");
-        if (!habitCtx || !healthCtx) return;
+    //     const habitCtx = habitChartCanvas.getContext("2d");
+    //     const healthCtx = healthChartCanvas.getContext("2d");
+    //     if (!habitCtx || !healthCtx) return;
 
-        // Destroy existing charts if they exist
-        if (habitChartInstance.current) habitChartInstance.current.destroy();
-        if (healthChartInstance.current) healthChartInstance.current.destroy();
+    //     // Destroy existing charts if they exist
+    //     if (habitChartInstance.current) habitChartInstance.current.destroy();
+    //     if (healthChartInstance.current) healthChartInstance.current.destroy();
 
-        habitChartInstance.current = new Chart(habitCtx, {
-          type: "line",
-          data: {
-            labels: habitLabels,
-            datasets: [{
-              label: "Habit continuity",
-              data: habitContinuityData,
-              borderColor: "rgb(34, 197, 94)",
-              backgroundColor: "rgba(34, 197, 94, 0.15)",
-              fill: true, tension: 0.35, pointRadius: 4,
-            }],
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false }, tooltip: { intersect: false, mode: "index" } },
-            scales: { y: { beginAtZero: true, suggestedMax: 10, ticks: { stepSize: 2 } } },
-          },
-        });
+    //     habitChartInstance.current = new Chart(habitCtx, {
+    //       type: "line",
+    //       data: {
+    //         labels: habitLabels,
+    //         datasets: [{
+    //           label: "Habit continuity",
+    //           data: habitContinuityData,
+    //           borderColor: "rgb(34, 197, 94)",
+    //           backgroundColor: "rgba(34, 197, 94, 0.15)",
+    //           fill: true, tension: 0.35, pointRadius: 4,
+    //         }],
+    //       },
+    //       options: {
+    //         responsive: true, maintainAspectRatio: false,
+    //         plugins: { legend: { display: false }, tooltip: { intersect: false, mode: "index" } },
+    //         scales: { y: { beginAtZero: true, suggestedMax: 10, ticks: { stepSize: 2 } } },
+    //       },
+    //     });
 
-        healthChartInstance.current = new Chart(healthCtx, {
-          type: "bar",
-          data: {
-            labels: healthLabels,
-            datasets: [{
-              label: "Overall health score",
-              data: healthScoreData,
-              backgroundColor: "rgba(59, 130, 246, 0.8)",
-              borderRadius: 12, barPercentage: 0.65,
-            }],
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false }, tooltip: { intersect: false, mode: "index" } },
-            scales: { y: { beginAtZero: true, suggestedMax: 100, ticks: { stepSize: 20 } } },
-          },
-        });
+    //     healthChartInstance.current = new Chart(healthCtx, {
+    //       type: "bar",
+    //       data: {
+    //         labels: healthLabels,
+    //         datasets: [{
+    //           label: "Overall health score",
+    //           data: healthScoreData,
+    //           backgroundColor: "rgba(59, 130, 246, 0.8)",
+    //           borderRadius: 12, barPercentage: 0.65,
+    //         }],
+    //       },
+    //       options: {
+    //         responsive: true, maintainAspectRatio: false,
+    //         plugins: { legend: { display: false }, tooltip: { intersect: false, mode: "index" } },
+    //         scales: { y: { beginAtZero: true, suggestedMax: 100, ticks: { stepSize: 20 } } },
+    //       },
+    //     });
 
-      } catch (err) {
-        console.error("Failed to fetch graph data", err);
-      }
-    }
+    //   } catch (err) {
+    //     console.error("Failed to fetch graph data", err);
+    //   }
+    // }
 
     if (!loading) {
       fetchDateTime();

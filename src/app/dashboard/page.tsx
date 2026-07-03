@@ -23,7 +23,6 @@ Chart.register(
   CategoryScale, LinearScale, LineController, LineElement,
   PointElement, BarController, BarElement, Tooltip, Legend, Filler
 );
-
 function authHeaders() {
   const token = localStorage.getItem("token");
   return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };

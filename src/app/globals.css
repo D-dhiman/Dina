@@ -4,7 +4,7 @@
   --background: #ffffff;
   --foreground: #171717;
   --dina-green: #143511;
-  --dina-light-green: #538f4e;
+  --dina-light-green: #3d531b;
 }
 
 @theme inline {
@@ -83,11 +83,29 @@ body {
   font-family: var(--font-lato), var(--font-sans), sans-serif;
 }
 
+.dina-input {
+  width: 100%;
+  max-width: 28rem;
+  padding: .7rem 5rem;
+  border: 2px solid #3d531b;
+  border-radius: 0.9rem;
+  background: #ffffff;
+  color: #1f2f13;
+  font-size: .9rem;
+  outline: none;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.dina-input:focus {
+  border-color: #5a7a2a;
+  box-shadow: 0 0 0 4px rgba(90, 122, 42, 0.12);
+}
+
 .dina-button {
-  border: 2px solid var(--dina-light-green);
-  background-color: transparent;
-  color: var(--dina-light-green);
-  padding: 0.95rem 5rem;
+  border: 2px solid rgb(73, 108, 75);
+  background-color: var(--dina-light-green);
+  color: white;
+  padding: 0.95rem 3rem;
   border-radius: 0.8rem;
   font-weight: 600;
   font-size: 0.95rem;

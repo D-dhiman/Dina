@@ -44,7 +44,7 @@ function EditableField({ label, value, onSave, type = "text", suffix }: Editable
 
   return (
     <div className="flex items-center justify-between py-3 border-b border-black/10 last:border-0">
-      <span className="text-sm text-gray-700/80 w-36 flex-shrink-0 font-medium">{label}</span>
+      <span className="text-sm text-[#570A0A] w-36 flex-shrink-0 font-medium">{label}</span>
       {editing ? (
         <div className="flex items-center gap-2 flex-1 justify-end">
           <input
@@ -53,7 +53,7 @@ function EditableField({ label, value, onSave, type = "text", suffix }: Editable
             value={draft}
             onChange={e => setDraft(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") commit(); if (e.key === "Escape") cancel(); }}
-            className="bg-white/90 text-gray-900 text-sm rounded-xl px-3 py-1.5 w-36 outline-none border border-black/20 focus:border-sky-600 shadow-inner"
+            className="bg-white/90 text-black text-sm rounded-xl px-3 py-1.5 w-36 outline-none border border-black/20 focus:border-sky-600 shadow-inner"
           />
           {suffix && <span className="text-gray-600 text-xs">{suffix}</span>}
           <button onClick={commit} className="text-sky-700 hover:text-sky-900 transition-colors"><Check size={16} /></button>
@@ -163,13 +163,13 @@ interface TogglePrefProps {
 
 function TogglePref({ label, description, value, onChange }: TogglePrefProps) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-black/10 last:border-0">
+    <div className="flex items-center justify-between py-3 border-b border-black/10 last:border-0 z-1">
       <div>
-        <p className="text-sm text-slate-900 font-semibold">{label}</p>
-        <p className="text-xs text-slate-700 font-medium mt-0.5">{description}</p>
+        <p className="text-sm text-slate-900 z-1 font-semibold">{label}</p>
+        <p className="text-xs text-slate-700 z-1 font-medium mt-0.5">{description}</p>
       </div>
-      <button onClick={() => onChange(!value)} className={`relative w-11 h-6 rounded-full transition-colors duration-300 flex-shrink-0 shadow-inner ${value ? "bg-emerald-600" : "bg-slate-400"}`}>
-        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${value ? "translate-x-5" : "translate-x-0"}`} />
+      <button onClick={() => onChange(!value)} className={`relative w-11 z-1 h-6 rounded-full transition-colors duration-300 flex-shrink-0 shadow-inner ${value ? "bg-emerald-600" : "bg-slate-400"}`}>
+        <span className={`absolute top-0.5 left-0.5 w-5 h-5 z-1 rounded-full bg-white shadow-sm transition-transform duration-300 ${value ? "translate-x-5" : "translate-x-0"}`} />
       </button>
     </div>
   );
@@ -408,18 +408,18 @@ export default function ProfilePage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#fafb96]/10 pb-24">
-      <main className="w-full max-w-2xl mx-auto py-10 px-4 sm:px-6">
+    <div className="min-h-screen bg-[#fafb96]/10 pb-24 pt-8">
+      <main className="w-full max-w-4xl mx-auto py-10 px-4 sm:px-6">
 
         {/* Header */}
-        <header className="flex items-center justify-between mb-8 border-b border-gray-200 pb-6">
+        <header className="flex items-center justify-between mb-8 border-b border-gray-200 pb-6 px-5">
           <div>
             <h1 className="text-3xl font-black text-[#0f240f] tracking-tight">Profile</h1>
             <p className="text-sm text-[#556050] font-bold mt-1">Your health identity</p>
           </div>
-          <div className="flex items-center gap-1 bg-amber-200 border border-amber-300 px-3 py-1.5 rounded-full shadow-md">
-            <Flame size={18} className="text-amber-700 fill-amber-600" />
-            <span className="text-sm font-black text-amber-900">{dayStreak}</span>
+          <div className="flex items-center gap-1">
+            <Flame size={23} className="text-amber-500 fill-amber-500" />
+            <span className="text-lg font-bold text-amber-800">{dayStreak}</span>
           </div>
         </header>
 
@@ -435,9 +435,9 @@ export default function ProfilePage() {
         )}
 
         {/* User card */}
-        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-sky-100 to-sky-200 border border-sky-300/60 shadow-md">
+        <div className="rounded-3xl p-6 mb-6 z-0 bg-gradient-to-br from-sky-200 to-sky-300 noise-bg border border-sky-300/60 shadow-md">
           <div className="flex items-center gap-5">
-            <div className="w-20 h-20 rounded-full flex items-center justify-center text-white font-black text-2xl flex-shrink-0 border-2 border-white shadow-md" style={{ background: SKYBLUE_BG }}>
+            <div className="w-20 h-20 z-1 rounded-full flex items-center justify-center text-white font-black text-2xl flex-shrink-0 border-2 border-white shadow-md" style={{ background: SKYBLUE_BG }}>
               {profile.name.charAt(0).toUpperCase() || "?"}
             </div>
             <div className="flex-1 min-w-0">
@@ -465,12 +465,12 @@ export default function ProfilePage() {
         </div>
 
         {/* Personal info */}
-        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-[#ffedd5] to-[#fed7aa] border border-[#fdba74]/40 shadow-md">
+        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-[#D39892] to-[#B98585] noise-bg z-0 border border-[#fdba74]/40 shadow-md">
           <div className="flex items-center gap-2 mb-4">
-            <User size={16} className="text-[#7c2d12] stroke-[2.5]" />
-            <h3 className="text-sm uppercase tracking-[0.18em] text-[#7c2d12] font-black">Personal info</h3>
+            <User size={16} className="text-black stroke-[2.5]" />
+            <h3 className="text-sm uppercase tracking-[0.18em] text-black font-black">Personal info</h3>
           </div>
-          <div className="bg-white/40 p-2.5 rounded-2xl border border-orange-200/40">
+          <div className="bg-white/50 p-2.5 rounded-2xl border border-orange-200/40">
             <EditableField label="Name" value={profile.name} onSave={updateProfile("name")} />
             <EditableField label="Date of birth" value={profile.dob} onSave={updateProfile("dob")} type="date" />
             <EditableField label="Age" value={profile.age} onSave={updateProfile("age")} type="number" suffix="yrs" />
@@ -481,12 +481,12 @@ export default function ProfilePage() {
         </div>
 
         {/* Dietary Preferences */}
-        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-[#fef08a] to-[#fde047] border border-[#facc15]/40 shadow-md">
+        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-[#E9E79A] to-[#F0E780] noise-bg z-0 border border-[#facc15]/40 shadow-md">
           <div className="flex items-center gap-2 mb-4">
             <Apple size={16} className="text-[#713f12] stroke-[2.5]" />
             <h3 className="text-sm uppercase tracking-[0.18em] text-[#713f12] font-black">Dietary Preferences</h3>
           </div>
-          <div className="bg-white/40 p-2.5 rounded-2xl border border-yellow-300/40">
+          <div className="bg-white/50 p-2.5 rounded-2xl border border-yellow-300/40">
             <EditableField label="Diet Type" value={diet.type} onSave={updateDiet("type")} />
             <EditableField label="Allergies" value={diet.allergies} onSave={updateDiet("allergies")} />
             <EditableField label="Restrictions" value={diet.restrictions} onSave={updateDiet("restrictions")} />
@@ -494,32 +494,32 @@ export default function ProfilePage() {
         </div>
 
         {/* Medications */}
-        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-[#e9d5ff] to-[#d8b4fe] border border-[#c084fc]/40 shadow-md">
+        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-[#D69ACB] to-[#C68CCC] noise-bg z-0 border border-[#c084fc]/40 shadow-md">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Pill size={16} className="text-[#581c87] stroke-[2.5]" />
-              <h3 className="text-sm uppercase tracking-[0.18em] text-[#581c87] font-black">Medication Schedule</h3>
+              <Pill size={16} className="text-black stroke-[2.5]" />
+              <h3 className="text-sm uppercase tracking-[0.18em] text-black font-black">Medication Schedule</h3>
             </div>
             {!isCreatingMed && (
-              <button onClick={() => setIsCreatingMed(true)} className="flex items-center gap-2 text-[#581c87] hover:bg-purple-300/60 transition-colors px-3 py-1.5 rounded-lg bg-white/90 border border-[#c084fc]/50 text-sm font-bold shadow-sm">
+              <button onClick={() => setIsCreatingMed(true)} className="flex items-center gap-2 text-[#581c87] hover:bg-[#F0B9F6] z-1 transition-colors px-3 py-1.5 rounded-lg bg-white/90 border border-[#c084fc]/50 text-sm font-bold shadow-sm">
                 <Plus size={16} /><span>Add Medication</span>
               </button>
             )}
           </div>
 
           {isCreatingMed ? (
-            <div className="space-y-4 bg-white/80 p-4 rounded-2xl border border-[#c084fc]/40 shadow-inner">
+            <div className="space-y-4 bg-white/80 p-4 rounded-2xl border border-[#c084fc]/40 shadow-inner z-1">
               <div>
-                <label className="block text-sm font-bold text-[#581c87] mb-1">Medication Name</label>
+                <label className="block text-sm font-bold text-black mb-1 z-1">Medication Name</label>
                 <input type="text" value={newMedName} onChange={e => setNewMedName(e.target.value)} placeholder="e.g., Metformin, Aspirin, Vitamin C" className="w-full bg-white text-gray-900 border border-gray-300 placeholder-gray-400 rounded-lg px-3 py-2 focus:border-purple-600 focus:outline-none text-sm shadow-xs" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-bold text-[#581c87] mb-1">Dosage Allocation</label>
+                  <label className="block text-sm font-bold text-black mb-1 z-1">Dosage Allocation</label>
                   <input type="text" value={newMedDosage} onChange={e => setNewMedDosage(e.target.value)} placeholder="e.g., 1 tablet, 500mg" className="w-full bg-white text-gray-900 border border-gray-300 placeholder-gray-400 rounded-lg px-3 py-2 focus:border-purple-600 focus:outline-none text-sm shadow-xs" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-[#581c87] mb-1">Frequency</label>
+                  <label className="block text-sm font-bold text-black mb-1 z-1">Frequency</label>
                   <select value={newMedFrequency} onChange={e => handleFrequencyPresetChange(e.target.value)} className="w-full bg-white text-gray-900 border border-gray-300 rounded-lg px-2 py-2 focus:border-purple-600 focus:outline-none text-sm shadow-xs h-[38px] font-medium">
                     <option value="Daily">Daily</option>
                     <option value="Twice a day">Twice a day</option>
@@ -536,14 +536,14 @@ export default function ProfilePage() {
                 <div className="bg-purple-100/50 border border-purple-300/40 p-3 rounded-xl flex items-center gap-3 shadow-inner">
                   <Wrench size={16} className="text-purple-800 flex-shrink-0" />
                   <div className="flex-1">
-                    <label className="block text-xs font-bold text-[#581c87] mb-1">Type Custom Frequency Schedule</label>
+                    <label className="block text-xs font-bold text-black mb-1 z-1">Type Custom Frequency Schedule</label>
                     <input type="text" value={newMedManualFrequency} onChange={e => setNewMedManualFrequency(e.target.value)} placeholder="e.g., Every 6 hours, 4 times a week" className="w-full bg-white text-gray-900 border border-gray-300 placeholder-gray-400 rounded-lg px-2.5 py-1.5 focus:border-purple-600 focus:outline-none text-xs shadow-xs" />
                   </div>
                 </div>
               )}
               <div className="bg-purple-50/60 p-3 rounded-xl border border-purple-200/60">
                 <div className="flex items-center justify-between mb-2">
-                  <label className="block text-xs font-black text-[#581c87] uppercase tracking-wider">Intake Time Allocation(s)</label>
+                  <label className="block text-xs font-black text-black uppercase tracking-wider z-1">Intake Time Allocation(s)</label>
                   {(newMedFrequency === "Manual" || newMedFrequency === "Emergency Only") && (
                     <button type="button" onClick={addTimeSlot} className="text-xs bg-white text-purple-700 hover:bg-purple-100 border border-purple-300 font-extrabold px-2 py-0.5 rounded-md shadow-xs transition-colors">+ Add Time Slot</button>
                   )}
@@ -561,7 +561,7 @@ export default function ProfilePage() {
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button onClick={() => setIsCreatingMed(false)} className="text-gray-600 hover:text-gray-900 transition-colors px-4 py-2 text-sm font-bold">Cancel</button>
-                <button onClick={handleCreateMedication} disabled={!newMedName || !newMedDosage || (newMedFrequency === "Manual" && !newMedManualFrequency)} className={`px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold rounded-lg transition-colors text-sm shadow-sm ${(!newMedName || !newMedDosage || (newMedFrequency === "Manual" && !newMedManualFrequency)) ? "opacity-50 cursor-not-allowed" : ""}`}>Add Schedule</button>
+                <button onClick={handleCreateMedication} disabled={!newMedName || !newMedDosage || (newMedFrequency === "Manual" && !newMedManualFrequency)} className={`px-4 py-2 bg-[#9C5AA4] z-1 hover:bg-[#9C5AA4] text-white font-bold rounded-lg transition-colors text-sm shadow-sm ${(!newMedName || !newMedDosage || (newMedFrequency === "Manual" && !newMedManualFrequency)) ? "opacity-50 cursor-not-allowed" : ""}`}>Add Schedule</button>
               </div>
             </div>
           ) : (
@@ -578,14 +578,14 @@ export default function ProfilePage() {
         </div>
 
         {/* Health goals */}
-        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-[#d1fae5] to-[#a7f3d0] border border-[#6ee7b7]/40 shadow-md">
+        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-[#C0ECA1] to-[#A0C67F] noise-bg z-0 border border-[#6ee7b7]/40 shadow-md">
           <div className="flex items-center justify-between mb-5">
             <div className="flex items-center gap-2">
               <Target size={16} className="text-[#065f46] stroke-[2.5]" />
               <h3 className="text-sm uppercase tracking-[0.18em] text-[#065f46] font-black">Health goals</h3>
             </div>
             {!isCreatingGoal && (
-              <button onClick={() => setIsCreatingGoal(true)} className="flex items-center gap-2 text-[#064e3b] hover:bg-emerald-300/60 transition-colors px-3 py-1.5 rounded-lg bg-white/90 border border-[#6ee7b7]/50 text-sm font-bold shadow-sm">
+              <button onClick={() => setIsCreatingGoal(true)} className="flex items-center gap-2 text-[#064e3b] hover:bg-[#ADEC76] transition-colors px-3 py-1.5 rounded-lg bg-white/90 border border-[#6ee7b7]/50 text-sm font-bold shadow-sm">
                 <Plus size={16} /><span>Create goal</span>
               </button>
             )}
@@ -593,22 +593,22 @@ export default function ProfilePage() {
           {isCreatingGoal ? (
             <div className="space-y-4 bg-white/80 p-4 rounded-2xl border border-[#6ee7b7]/40 shadow-inner">
               <div>
-                <label className="block text-sm font-bold text-[#065f46] mb-1">Goal Type / Title</label>
+                <label className="block text-sm font-bold text-[#065f46] mb-1 z-1">Goal Type / Title</label>
                 <input type="text" value={newGoalLabel} onChange={e => setNewGoalLabel(e.target.value)} placeholder="e.g., Green Tea, Reading, Pushups" className="w-full bg-white text-gray-900 border border-gray-300 placeholder-gray-400 rounded-lg px-3 py-2 focus:border-emerald-600 focus:outline-none text-sm shadow-xs" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm font-bold text-[#065f46] mb-1">Target Value</label>
+                  <label className="block text-sm font-bold text-[#065f46] mb-1 z-1">Target Value</label>
                   <input type="number" value={newGoalValue} onChange={e => setNewGoalValue(e.target.value)} placeholder="e.g., 3, 45, 500" className="w-full bg-white text-gray-900 border border-gray-300 placeholder-gray-400 rounded-lg px-3 py-2 focus:border-emerald-600 focus:outline-none text-sm shadow-xs" />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-[#065f46] mb-1">Unit</label>
+                  <label className="block text-sm font-bold text-[#065f46] mb-1 z-1">Unit</label>
                   <input type="text" value={newGoalUnit} onChange={e => setNewGoalUnit(e.target.value)} placeholder="e.g., cups, pages, reps" className="w-full bg-white text-gray-900 border border-gray-300 placeholder-gray-400 rounded-lg px-3 py-2 focus:border-emerald-600 focus:outline-none text-sm shadow-xs" />
                 </div>
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button onClick={() => setIsCreatingGoal(false)} className="text-gray-600 hover:text-gray-900 transition-colors px-4 py-2 text-sm font-bold">Cancel</button>
-                <button onClick={handleCreateGoal} disabled={!newGoalLabel || !newGoalValue} className={`px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition-colors text-sm shadow-sm ${!newGoalLabel || !newGoalValue ? "opacity-50 cursor-not-allowed" : ""}`}>Create goal</button>
+                <button onClick={handleCreateGoal} disabled={!newGoalLabel || !newGoalValue} className={`px-4 py-2 bg-[#86CA1A] hover:bg-[#86CA1A] text-white font-bold rounded-lg z-1 transition-colors text-sm shadow-sm ${!newGoalLabel || !newGoalValue ? "opacity-50 cursor-not-allowed" : ""}`}>Create goal</button>
               </div>
             </div>
           ) : (
@@ -621,14 +621,14 @@ export default function ProfilePage() {
         </div>
 
         {/* IoT & Wearables */}
-        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-teal-100 to-teal-200 border border-teal-300/50 shadow-md">
+        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-[#7CBDE5] to-[#4C9BCD] z-0 noise-bg border border-teal-300/50 shadow-md">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Cpu size={16} className="text-teal-900 stroke-[2.5]" />
               <h3 className="text-sm uppercase tracking-[0.18em] text-teal-900 font-black">IoT & Wearables</h3>
             </div>
             {!isPairingDevice && (
-              <button onClick={() => setIsPairingDevice(true)} className="flex items-center gap-1.5 text-teal-900 hover:bg-teal-300/50 transition-colors px-3 py-1.5 rounded-lg bg-white/90 border border-teal-300/40 text-sm font-bold shadow-sm">
+              <button onClick={() => setIsPairingDevice(true)} className="flex items-center gap-1.5 text-teal-900 z-1 hover:bg-[#9FD3F3]/50 transition-colors px-3 py-1.5 rounded-lg bg-white/90 border border-teal-300/40 text-sm font-bold shadow-sm">
                 <Plus size={16} /><span>Pair Device</span>
               </button>
             )}
@@ -636,7 +636,7 @@ export default function ProfilePage() {
           {isPairingDevice ? (
             <div className="space-y-4 bg-white/80 p-4 rounded-2xl border border-teal-300/50 shadow-inner">
               <div>
-                <label className="block text-sm font-bold text-teal-900 mb-1">Device Name / Model</label>
+                <label className="block text-sm font-bold text-teal-900 mb-1 z-1">Device Name / Model</label>
                 <input type="text" value={newDeviceName} onChange={e => setNewDeviceName(e.target.value)} placeholder="e.g., Apple Watch Series 9, Oura Ring" className="w-full bg-white text-gray-900 border border-gray-300 placeholder-gray-400 rounded-lg px-3 py-2 focus:border-teal-600 focus:outline-none text-sm shadow-xs" />
               </div>
               <div>
@@ -651,7 +651,7 @@ export default function ProfilePage() {
               </div>
               <div className="flex justify-end gap-3 pt-1">
                 <button onClick={() => setIsPairingDevice(false)} className="text-gray-600 hover:text-gray-900 transition-colors px-4 py-2 text-sm font-bold">Cancel</button>
-                <button onClick={handlePairDevice} disabled={!newDeviceName} className={`px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white font-bold rounded-lg transition-colors text-sm shadow-sm ${!newDeviceName ? "opacity-50 cursor-not-allowed" : ""}`}>Connect & Sync</button>
+                <button onClick={handlePairDevice} disabled={!newDeviceName} className={`px-4 py-2 bg-teal-700 hover:bg-teal-800 z-1 text-white font-bold rounded-lg transition-colors text-sm shadow-sm ${!newDeviceName ? "opacity-50 cursor-not-allowed" : ""}`}>Connect & Sync</button>
               </div>
             </div>
           ) : (
@@ -682,12 +682,12 @@ export default function ProfilePage() {
         </div>
 
         {/* Preferences */}
-        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-[#dbeafe] to-[#bfdbfe] border border-[#93c5fd]/40 shadow-md">
+        <div className="rounded-3xl p-6 mb-6 bg-gradient-to-br from-[#dbeafe] to-[#bfdbfe] noise-bg z-0 border border-[#93c5fd]/40 shadow-md">
           <div className="flex items-center gap-2 mb-4">
             <Settings2 size={16} className="text-[#1e3a8a] stroke-[2.5]" />
             <h3 className="text-sm uppercase tracking-[0.18em] text-[#1e3a8a] font-black">Preferences</h3>
           </div>
-          <div className="bg-white/30 p-2.5 rounded-2xl border border-blue-200/40">
+          <div className="bg-white/30 p-2.5 rounded-2xl border border-blue-200/40 z-1">
             <TogglePref label="Push notifications" description="Daily reminders and streak alerts" value={prefs.notifications} onChange={updatePref("notifications")} />
             <TogglePref label="Weekly report" description="Summary every Sunday morning" value={prefs.weeklyReport} onChange={updatePref("weeklyReport")} />
             <TogglePref label="Habit reminders" description="Nudges for incomplete habits" value={prefs.reminders} onChange={updatePref("reminders")} />
@@ -697,7 +697,7 @@ export default function ProfilePage() {
         </div>
 
         {/* Account actions */}
-        <div className="rounded-3xl overflow-hidden border border-gray-200 bg-white shadow-md">
+        <div className="rounded-3xl overflow-hidden border border-gray-200 bg-white shadow-md z-1">
           {[
             { label: "Export my data", sub: "Download a CSV of all your logs" },
             { label: "Connected devices", sub: "Sync with wearables" },

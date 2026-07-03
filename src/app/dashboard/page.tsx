@@ -18,8 +18,6 @@ import Navbar from "../components/navbar";
 import JournalLog from "../components/journalLog";
 import { Flame, ChevronDown } from "lucide-react";
 import HealthCarousel from "../components/HealthCarousel";
-import { BarController, BarElement, CategoryScale, Chart, Filler, Legend, LinearScale, LineController, LineElement, PointElement, Tooltip } from "chart.js";
-
 
 Chart.register(
   CategoryScale, LinearScale, LineController, LineElement,

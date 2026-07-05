@@ -116,14 +116,23 @@ export default function HabitsPage() {
   // ── Fetch habits + dailies, then restore today's statuses ─────────────────
   async function fetchTrackedItems() {
     try {
+      // Allow override via query param (e.g., ?pr=PT_NEENA_373) to view a specific patient's data without JWT
+      const url = typeof window !== 'undefined' ? new URL(window.location.href) : null;
+      const overridePr = url ? (url.searchParams.get('pr') || url.searchParams.get('patient_id')) : null;
+
       const token = localStorage.getItem('token');
-      if (!token) return;
+      // If no token and no override param, abort (unauthenticated)
+      if (!token && !overridePr) return;
+
+      const habitsUrl = `/api/habits${overridePr ? `?pr=${encodeURIComponent(overridePr)}` : ''}`;
+      const dailiesUrl = `/api/dailies${overridePr ? `?pr=${encodeURIComponent(overridePr)}` : ''}`;
+      const completionsHeaders = authHeaders();
 
       const [habitsRes, dailiesRes, habitCompRes, dailyCompRes] = await Promise.all([
-        fetch('/api/habits',            { headers: authHeaders() }),
-        fetch('/api/dailies',           { headers: authHeaders() }),
-        fetch(`/api/habit-completions?date=${TODAY}`,  { headers: authHeaders() }),
-        fetch(`/api/daily-completions?date=${TODAY}`,  { headers: authHeaders() }),
+        fetch(habitsUrl,            { headers: completionsHeaders }),
+        fetch(dailiesUrl,           { headers: completionsHeaders }),
+        fetch(`/api/habit-completions?date=${TODAY}`,  { headers: completionsHeaders }),
+        fetch(`/api/daily-completions?date=${TODAY}`,  { headers: completionsHeaders }),
       ]);
 
       if (!habitsRes.ok || !dailiesRes.ok) {

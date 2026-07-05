@@ -12,7 +12,16 @@ function getPrakritiId(req) {
 
 export async function GET(req) {
   try {
-    const prakriti_id = getPrakritiId(req);
+    // Allow overriding prakriti_id with query param for debugging
+    const url = new URL(req.url);
+    const overridePr = url.searchParams.get('pr') || url.searchParams.get('patient_id');
+    let prakriti_id;
+    if (overridePr) {
+      prakriti_id = overridePr;
+    } else {
+      prakriti_id = getPrakritiId(req);
+    }
+
     const result = await pool.query(
       'SELECT id, habit_name, category, prescribed_time, last_time_to_do, frequency, streak_count FROM dailies WHERE user_id = $1 AND active = true',
       [prakriti_id]

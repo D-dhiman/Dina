@@ -34,35 +34,38 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center px-4 dina-background">
-      <div className="flex flex-col items-center justify-center text-center gap-4">
-        <p className="dina-heading text-lg font-bold">Login</p>
+    <main className="min-h-screen flex w-full items-stretch dina-background">
+      <div className=" w-1/2 flex items-center justify-center bg-[#6a9974] rounded-r-xl z-1 relative">
+        <div className="flex flex-col items-center justify-center text-center gap-4 w-3/4 bg-white p-8 rounded-xl shadow-md">
+          <p className="dina-heading text-lg font-bold">Login</p>
 
-        <input
-          type="text"
-          placeholder="Prakriti ID"
-          value={prakriti_id}
-          onChange={e => setPrakritiId(e.target.value)}
-          className="dina-input" // use your existing input styles
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          className="dina-input"
-        />
+          <input
+            type="text"
+            placeholder="Prakriti ID"
+            value={prakriti_id}
+            onChange={e => setPrakritiId(e.target.value)}
+            className="dina-input" // use your existing input styles
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            className="dina-input"
+          />
 
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && <p className="text-red-500 text-sm">{error}</p>}
 
-        <button
-          onClick={handleLogin}
-          disabled={loading}
-          className="dina-button"
-        >
-          {loading ? 'Logging in...' : 'Login'}
-        </button>
+          <button
+            onClick={handleLogin}
+            disabled={loading}
+            className="dina-button"
+          >
+            {loading ? 'Logging in...' : 'Login'}
+          </button>
+        </div>
       </div>
+      <div className="bg-green-400 w-1/2"></div>
     </main>
   );
 }

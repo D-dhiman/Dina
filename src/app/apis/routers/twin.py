@@ -145,6 +145,47 @@ def _build_prompt(user, logs, meds, conditions, habits, dailies, recs, form_resu
     return serialize(user, logs, meds, conditions, habits, recs, form_result, form_history)
 
 
+def _coerce_section_score(raw_score):
+    """
+    Defensively extract a numeric 0-5 score from a section_scores value.
+
+    Some rows in wellness_assessments.section_scores were saved with a
+    richer/nested shape than the rest of the code expects — e.g.
+        {"Digestion & Metabolism": {"score": 3.5, "notes": "..."}, ...}
+    instead of the plain
+        {"Digestion & Metabolism": 3.5, ...}
+
+    Handles:
+      - a plain int/float          -> returned as-is (as float)
+      - a numeric string           -> parsed
+      - a dict with a known key    -> pulls "score"/"raw_score"/"value"/"average"/"avg"
+      - a dict with no known key   -> averages any numeric values found inside it
+      - anything else / unparsable -> None (caller should skip/fallback)
+    """
+    if isinstance(raw_score, bool):
+        # bool is a subclass of int — exclude explicitly to avoid nonsense scores
+        return None
+    if isinstance(raw_score, (int, float)):
+        return float(raw_score)
+    if isinstance(raw_score, str):
+        try:
+            return float(raw_score)
+        except (TypeError, ValueError):
+            return None
+    if isinstance(raw_score, dict):
+        for key in ("score", "raw_score", "value", "average", "avg"):
+            if key in raw_score:
+                try:
+                    return float(raw_score[key])
+                except (TypeError, ValueError):
+                    continue
+        nums = [v for v in raw_score.values() if isinstance(v, (int, float)) and not isinstance(v, bool)]
+        if nums:
+            return sum(nums) / len(nums)
+        return None
+    return None
+
+
 def _submission_to_result(submission: dict, prev_submission: Optional[dict]):
     """Convert a wellness_assessment row to the shape format_form_scores_for_prompt expects."""
     from types import SimpleNamespace
@@ -159,7 +200,12 @@ def _submission_to_result(submission: dict, prev_submission: Optional[dict]):
         answers  = submission.get("answers") or {}
         q_scores = {qid: float(answers.get(qid, 3)) for qid in q_ids}
         sec_section_scores = submission.get("section_scores") or {}
-        raw_score = sec_section_scores.get(meta["name"], sum(q_scores.values()) / len(q_scores))
+
+        fallback_score = sum(q_scores.values()) / len(q_scores)
+        raw_score = _coerce_section_score(sec_section_scores.get(meta["name"]))
+        if raw_score is None:
+            raw_score = fallback_score
+
         weak = [q for q, v in q_scores.items() if v <= 2]
         sections.append(SimpleNamespace(
             section_id=sec_id, name=meta["name"],
@@ -238,13 +284,21 @@ def format_form_history_for_prompt(submissions: list) -> str:
         bar = "█" * int(hs / 20) + "░" * (5 - int(hs / 20))
         lines.append(f"  Submission {i}  [{dt} {tm}]")
         lines.append(f"    Overall  : {hs}/100 ({lbl})  {bar}")
+
         secs = s.get("section_scores", {})
         if secs:
-            sec_parts = "  |  ".join(
-                f"{name.split('&')[0].strip()[:12]}: {score:.1f}/5"
-                for name, score in secs.items()
-            )
-            lines.append(f"    Sections : {sec_parts}")
+            sec_items = []
+            for name, raw_score in secs.items():
+                val = _coerce_section_score(raw_score)
+                if val is None:
+                    # Skip unparsable entries rather than crashing the whole request —
+                    # a missing section in the prompt is far better than a 500.
+                    continue
+                sec_items.append(f"{name.split('&')[0].strip()[:12]}: {val:.1f}/5")
+            if sec_items:
+                sec_parts = "  |  ".join(sec_items)
+                lines.append(f"    Sections : {sec_parts}")
+
         weak = s.get("weak_questions", [])
         if weak:
             lines.append(f"    Weak Qs  : {', '.join(weak)}")
@@ -569,15 +623,22 @@ async def assess(
 
     # ── 2. Read latest form submission ────────────────────────────────────────
     if not form_history:
-        raise HTTPException(
-            status_code=400,
-            detail="No wellness assessments found for this patient. "
-                   "The health score API must submit a form assessment first."
-        )
-
-    latest     = form_history[-1]
-    prev       = form_history[-2] if len(form_history) >= 2 else None
-    form_result = _submission_to_result(latest, prev)
+        # No submitted wellness assessments — fall back to a synthetic minimal submission so the UI can still load.
+        from datetime import date as _date
+        synthetic = {
+            "health_score": user.get("health_score") or 32,
+            "assessment_date": _date.today().isoformat(),
+            "answers": {},
+            "section_scores": {},
+            "id": None,
+        }
+        latest = synthetic
+        prev = None
+        form_result = _submission_to_result(latest, prev)
+    else:
+        latest     = form_history[-1]
+        prev       = form_history[-2] if len(form_history) >= 2 else None
+        form_result = _submission_to_result(latest, prev)
 
     # ── Calibration adjustment from past prediction accuracy ─────────────────
     calibration_adj = compute_calibration_adjustment(past_predictions)
@@ -596,30 +657,57 @@ async def assess(
     # ── 4. Build prompt + call LLM ────────────────────────────────────────────
     prompt = serialize(user, logs, meds, conditions, habits, recs, form_result, form_history,
                        accuracy_block=accuracy_block, calibration_adj=calibration_adj)
-    raw    = await call_groq(prompt, SYSTEM_PROMPT)
 
-    # ── 5. Parse + validate + save ────────────────────────────────────────────
-    result = _validate_result(_parse_llm_response(raw), current_hs=form_result.health_score)
+    # Attempt LLM call, but fall back gracefully if the LLM or network fails so UI can still function
+    raw = ""
+    result = None
+    try:
+        raw = await call_groq(prompt, SYSTEM_PROMPT)
+        result = _validate_result(_parse_llm_response(raw), current_hs=form_result.health_score)
 
-    prediction_id = await twin_db.save_prediction(dina, patient_id, {
-        "wellness_assessment_id": latest.get("id"),
-        "forecast_date":          str(date.today()),
-        "health_score":           form_result.health_score,
-        "previous_score":         form_result.previous_score,
-        "health_interpretation":  result.get("health_interpretation"),
-        "primary_driver":         result.get("primary_driver"),
-        "main_risk":              result.get("main_risk"),
-        "habits":                 result.get("habits", {}),
-        "dailies":                result.get("dailies", {}),
-        "forecast":               result.get("forecast", {}),
-        "doctor_referral":        result.get("doctor_referral", False),
-        "doctor_referral_reason": result.get("doctor_referral_reason"),
-        "raw_llm_response":       raw,
-    })
+        # Persist prediction when LLM returns valid JSON
+        prediction_id = await twin_db.save_prediction(dina, patient_id, {
+            "wellness_assessment_id": latest.get("id"),
+            "forecast_date":          str(date.today()),
+            "health_score":           form_result.health_score,
+            "previous_score":         form_result.previous_score,
+            "health_interpretation":  result.get("health_interpretation"),
+            "primary_driver":         result.get("primary_driver"),
+            "main_risk":              result.get("main_risk"),
+            "habits":                 result.get("habits", {}),
+            "dailies":                result.get("dailies", {}),
+            "forecast":               result.get("forecast", {}),
+            "doctor_referral":        result.get("doctor_referral", False),
+            "doctor_referral_reason": result.get("doctor_referral_reason"),
+            "raw_llm_response":       raw,
+        })
+    except Exception as e:
+        # LLM failed — log and fall back to a minimal, safe response so frontend still receives structure
+        import traceback
+        print("[twin.assess] LLM call or save failed:", e)
+        traceback.print_exc()
+        fallback = {
+            "health_interpretation": "(LLM unavailable — showing existing prescriptions only)",
+            "primary_driver": "",
+            "main_risk": "",
+            "habits": {"keep": [], "modify": [], "discard": [], "new": []},
+            "dailies": {"keep": [], "modify": [], "discard": [], "new": []},
+            "forecast": {"high_compliance": {"compliance_pct": 90, "horizons": []}, "low_compliance": {"compliance_pct": 50, "horizons": []}},
+            "doctor_referral": False,
+            "doctor_referral_reason": None,
+        }
+        result = _validate_result(fallback, current_hs=form_result.health_score)
+        prediction_id = None
 
     return {
         "prediction_id":         prediction_id,
         "patient_id":            patient_id,
+        "user": {
+            "name": user.get("name"),
+            "date_of_birth": user.get("date_of_birth"),
+            "gender": user.get("gender"),
+            "health_score": form_result.health_score,
+        },
         "health_score":          form_result.health_score,
         "previous_score":        form_result.previous_score,
         "delta":                 form_result.delta,
@@ -627,11 +715,15 @@ async def assess(
         "health_interpretation": result["health_interpretation"],
         "primary_driver":        result["primary_driver"],
         "main_risk":             result["main_risk"],
-        "habits":                result["habits"],
-        "dailies":               result["dailies"],
+        # LLM verdicts (keep/modify/discard/new)
+        "habits_verdict":        result["habits"],
+        "dailies_verdict":       result["dailies"],
         "forecast":              result["forecast"],
         "doctor_referral":       result["doctor_referral"],
         "doctor_referral_reason":result["doctor_referral_reason"],
+        # DB-backed existing prescriptions for frontend editing
+        "existing_habits":       habits,
+        "existing_dailies":      dailies_list,
     }
 
 
@@ -746,3 +838,146 @@ async def get_history(
                     p[field] = {}
         history.append(p)
     return {"patient_id": patient_id, "history": history}
+
+
+@router.post("/dailies/sync")
+async def sync_dailies(payload: dict, dina: asyncpg.Pool = Depends(get_dina_pool)):
+    """Accepts a bulk prescriptions payload and applies inserts/modifies/discards to the dailies table.
+    Expected payload: { "patient_id": "...", "prescriptions": [{"id": "...", "name": "...", "system_action": "New|Modified|Delete", ...}, ...] }
+    """
+    patient_id = payload.get("patient_id")
+    prescriptions = payload.get("prescriptions", []) or []
+    results = []
+    for item in prescriptions:
+        action = (item.get("system_action") or "").lower()
+        item_id = item.get("id")
+        name = item.get("name") or item.get("habit_name")
+        try:
+            if action in ("new",):
+                # Ensure required fields have sensible defaults when UI supplies minimal payload
+                item.setdefault('category', item.get('category') or 'general')
+                # convert prescribed_time string to time object if string provided
+                pt = item.get('prescribed_time') or '08:00:00'
+                from datetime import time as _time
+                try:
+                    if isinstance(pt, str):
+                        h,m,s = pt.split(':')
+                        item['prescribed_time'] = _time(int(h), int(m), int(s))
+                    else:
+                        item['prescribed_time'] = pt
+                except Exception:
+                    item['prescribed_time'] = _time(8,0,0)
+                item.setdefault('frequency', item.get('frequency') or 'daily')
+
+                # Idempotency check: avoid inserting duplicates by name (case-insensitive)
+                existing = None
+                try:
+                    existing_list = await twin_db.get_dailies(dina, patient_id, active_only=True)
+                    normalized = (name or "").strip().lower()
+                    for ex in existing_list:
+                        if (ex.get('habit_name') or "").strip().lower() == normalized:
+                            existing = ex
+                            break
+                except Exception:
+                    existing = None
+
+                if existing:
+                    results.append({"action": "skipped_existing", "reason": "match_by_name", "daily": existing})
+                else:
+                    inserted = await twin_db.insert_daily(dina, patient_id, item)
+                    results.append({"action": "inserted", "daily": inserted})
+            elif action in ("delete", "del"):
+                if item_id:
+                    ok = await twin_db.discard_daily(dina, item_id)
+                    results.append({"action": "discarded", "id": item_id, "ok": ok})
+                else:
+                    results.append({"action": "skipped", "reason": "no id for delete", "item": item})
+            elif action in ("modified", "mod"):
+                if item_id:
+                    # Accept partial updates for dailies from the UI
+                    allowed = {"habit_name", "category", "prescribed_time", "frequency"}
+                    updates = {k: v for k, v in item.items() if k in allowed and v is not None}
+                    if not updates:
+                        results.append({"action": "skipped", "reason": "no updatable fields provided", "item": item})
+                    else:
+                        updated = await twin_db.modify_daily(dina, item_id, updates)
+                        results.append({"action": "modified", "daily": updated})
+                else:
+                    results.append({"action": "skipped", "reason": "no id for modify", "item": item})
+            else:
+                results.append({"action": "skipped", "reason": "unknown action", "item": item})
+        except Exception as e:
+            results.append({"action": "error", "error": str(e), "item": item})
+
+    return {"patient_id": patient_id, "results": results}
+
+
+@router.post("/habits/sync")
+async def sync_habits(payload: dict, dina: asyncpg.Pool = Depends(get_dina_pool)):
+    """Bulk sync for habits (same payload shape as dailies/sync).
+    """
+    patient_id = payload.get("patient_id")
+    prescriptions = payload.get("prescriptions", []) or []
+    results = []
+    for item in prescriptions:
+        action = (item.get("system_action") or "").lower()
+        item_id = item.get("id")
+        name = item.get("name") or item.get("habit_name")
+        try:
+            if action in ("new",):
+                # Ensure required fields have sensible defaults when UI supplies minimal payload
+                item.setdefault('category', item.get('category') or 'general')
+                # convert prescribed_time string to time object if string provided
+                pt = item.get('prescribed_time') or '08:00:00'
+                from datetime import time as _time
+                try:
+                    if isinstance(pt, str):
+                        h,m,s = pt.split(':')
+                        item['prescribed_time'] = _time(int(h), int(m), int(s))
+                    else:
+                        item['prescribed_time'] = pt
+                except Exception:
+                    item['prescribed_time'] = _time(8,0,0)
+                item.setdefault('frequency', item.get('frequency') or 'daily')
+
+                # Idempotency check: avoid inserting duplicates by name (case-insensitive)
+                existing = None
+                try:
+                    existing_list = await twin_db.get_habits(dina, patient_id, active_only=True)
+                    normalized = (name or "").strip().lower()
+                    for ex in existing_list:
+                        if (ex.get('habit_name') or "").strip().lower() == normalized:
+                            existing = ex
+                            break
+                except Exception:
+                    existing = None
+
+                if existing:
+                    results.append({"action": "skipped_existing", "reason": "match_by_name", "habit": existing})
+                else:
+                    inserted = await twin_db.insert_habit(dina, patient_id, item)
+                    results.append({"action": "inserted", "habit": inserted})
+            elif action in ("delete", "del"):
+                if item_id:
+                    ok = await twin_db.discard_habit(dina, item_id)
+                    results.append({"action": "discarded", "id": item_id, "ok": ok})
+                else:
+                    results.append({"action": "skipped", "reason": "no id for delete", "item": item})
+            elif action in ("modified", "mod"):
+                if item_id:
+                    # Accept partial updates for habits from the UI
+                    allowed = {"habit_name", "category", "prescribed_time", "frequency", "details"}
+                    updates = {k: v for k, v in item.items() if k in allowed and v is not None}
+                    if not updates:
+                        results.append({"action": "skipped", "reason": "no updatable fields provided", "item": item})
+                    else:
+                        updated = await twin_db.modify_habit(dina, item_id, updates)
+                        results.append({"action": "modified", "habit": updated})
+                else:
+                    results.append({"action": "skipped", "reason": "no id for modify", "item": item})
+            else:
+                results.append({"action": "skipped", "reason": "unknown action", "item": item})
+        except Exception as e:
+            results.append({"action": "error", "error": str(e), "item": item})
+
+    return {"patient_id": patient_id, "results": results}

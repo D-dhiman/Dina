@@ -1,6 +1,6 @@
 "use client";
 import { 
-  Chart, // <-- Make sure this is here!
+  Chart, 
   CategoryScale, 
   LinearScale, 
   LineController, 
@@ -12,7 +12,7 @@ import {
   Legend, 
   Filler 
 } from 'chart.js';
-import { useEffect, useState,useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/navbar";
 import JournalLog from "../components/journalLog";
@@ -23,7 +23,6 @@ Chart.register(
   CategoryScale, LinearScale, LineController, LineElement,
   PointElement, BarController, BarElement, Tooltip, Legend, Filler
 );
-
 function authHeaders() {
   const token = localStorage.getItem("token");
   return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
@@ -254,13 +253,13 @@ interface Habit { id: string; habit_name: string; streak_count: number; }
 export default function DashboardPage() {
   const router = useRouter();
 
-  // 1. Create references for the HTML <canvas> elements
-const habitContinuityChartRef = useRef<HTMLCanvasElement | null>(null);
-const healthOverviewChartRef = useRef<HTMLCanvasElement | null>(null);
+  // 1. References for the HTML <canvas> elements
+  const habitContinuityChartRef = useRef<HTMLCanvasElement | null>(null);
+  const healthOverviewChartRef = useRef<HTMLCanvasElement | null>(null);
 
-// 2. Create persistent references for the Chart instances to prevent duplication
-const habitChartInstance = useRef<any>(null);
-const healthChartInstance = useRef<any>(null);
+  // 2. Persistent references for the Chart instances to prevent duplication
+  const habitChartInstance = useRef<any>(null);
+  const healthChartInstance = useRef<any>(null);
 
   const [userName, setUserName] = useState("");
   const [dayStreak, setDayStreak] = useState(0);
@@ -273,7 +272,7 @@ const healthChartInstance = useRef<any>(null);
 
   const [currentDate, setCurrentDate] = useState("");
   const [todayLabel, setTodayLabel] = useState("Mon");
-  const [, setCurrentTime] = useState(""); // Kept variable layout stable if state logic relies on placeholder
+  const [, setCurrentTime] = useState(""); 
 
   // ── Fetch dashboard data ──────────────────────────────────────────
   useEffect(() => {
@@ -313,147 +312,51 @@ const healthChartInstance = useRef<any>(null);
   // ── Date-Time API initialization ──────────────────────────────────
   useEffect(() => {
     async function fetchDateTime() {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-          try {
-            const res = await fetch(
-              `http://localhost:8000/datetime/geo?lat=${latitude}&lon=${longitude}`
-            );
-            const data = await res.json();
-            setCurrentDate(data.date);
-            setCurrentTime(data.time);
-            const dayMap: Record<string, string> = {
-              Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed",
-              Thursday: "Thu", Friday: "Fri", Saturday: "Sat", Sunday: "Sun",
-            };
-            setTodayLabel(dayMap[data.day_of_week] || "Mon");
-          } catch {
-            fallbackToIP();
-          }
-        },
-        () => fallbackToIP()
-      );
-    } else {
-      fallbackToIP();
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            try {
+              const res = await fetch(
+                `http://localhost:8000/datetime/geo?lat=${latitude}&lon=${longitude}`
+              );
+              const data = await res.json();
+              setCurrentDate(data.date);
+              setCurrentTime(data.time);
+              const dayMap: Record<string, string> = {
+                Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed",
+                Thursday: "Thu", Friday: "Fri", Saturday: "Sat", Sunday: "Sun",
+              };
+              setTodayLabel(dayMap[data.day_of_week] || "Mon");
+            } catch {
+              fallbackToIP();
+            }
+          },
+          () => fallbackToIP()
+        );
+      } else {
+        fallbackToIP();
+      }
     }
-  }
 
-  async function fallbackToIP() {
-    try {
-      const res = await fetch("http://localhost:8000/datetime/auto");
-      const data = await res.json();
-      setCurrentDate(data.date);
-      setCurrentTime(data.time);
-      const dayMap: Record<string, string> = {
-        Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed",
-        Thursday: "Thu", Friday: "Fri", Saturday: "Sat", Sunday: "Sun",
-      };
-      setTodayLabel(dayMap[data.day_of_week] || "Mon");
-    } catch {
-      const now = new Date();
-      const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-      setCurrentDate(now.toISOString().split("T")[0]);
-      setTodayLabel(labels[now.getDay()]);
+    async function fallbackToIP() {
+      try {
+        const res = await fetch("http://localhost:8000/datetime/auto");
+        const data = await res.json();
+        setCurrentDate(data.date);
+        setCurrentTime(data.time);
+        const dayMap: Record<string, string> = {
+          Monday: "Mon", Tuesday: "Tue", Wednesday: "Wed",
+          Thursday: "Thu", Friday: "Fri", Saturday: "Sat", Sunday: "Sun",
+        };
+        setTodayLabel(dayMap[data.day_of_week] || "Mon");
+      } catch {
+        const now = new Date();
+        const labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        setCurrentDate(now.toISOString().split("T")[0]);
+        setTodayLabel(labels[now.getDay()]);
+      }
     }
-  }
-
-  fetchDateTime();
-
-    // async function fetchGraphData() {
-    //   try {
-    //     const [habitCompRes, healthRes] = await Promise.all([
-    //       fetch('/api/habit-completions?days=7', { headers: authHeaders() }),
-    //       fetch('/api/daily-logs', { headers: authHeaders() })
-    //     ]);
-
-    //     let habitContinuityData: number[] = [];
-    //     let healthScoreData: number[] = [];
-    //     let habitLabels: string[] = [];
-    //     let healthLabels: string[] = [];
-
-    //     // Fetch habit completion data (last 7 days)
-    //     if (habitCompRes.ok) {
-    //       const habitData = await habitCompRes.json();
-    //       if (habitData.completionCounts && habitData.completionCounts.length > 0) {
-    //         habitContinuityData = habitData.completionCounts.map((item: any) => item.count);
-    //         habitLabels = habitData.completionCounts.map((item: any) => {
-    //           const date = new Date(item.date);
-    //           return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    //         });
-    //       }
-    //     }
-
-    //     // Fetch health score data from daily logs (last 7 days)
-    //     if (healthRes.ok) {
-    //       const logData = await healthRes.json();
-    //       const logs = (logData.logs || []).sort((a: any, b: any) => 
-    //         new Date(a.log_date).getTime() - new Date(b.log_date).getTime()
-    //       ).slice(-7);
-
-    //       if (logs.length > 0) {
-    //         healthScoreData = logs.map((log: any) => log.mood_score || 0);
-    //         healthLabels = logs.map((log: any) => {
-    //           const date = new Date(log.log_date);
-    //           return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    //         });
-    //       }
-    //     }
-
-    //     const habitChartCanvas = habitContinuityChartRef.current;
-    //     const healthChartCanvas = healthOverviewChartRef.current;
-    //     if (!habitChartCanvas || !healthChartCanvas) return;
-
-    //     const habitCtx = habitChartCanvas.getContext("2d");
-    //     const healthCtx = healthChartCanvas.getContext("2d");
-    //     if (!habitCtx || !healthCtx) return;
-
-    //     // Destroy existing charts if they exist
-    //     if (habitChartInstance.current) habitChartInstance.current.destroy();
-    //     if (healthChartInstance.current) healthChartInstance.current.destroy();
-
-    //     habitChartInstance.current = new Chart(habitCtx, {
-    //       type: "line",
-    //       data: {
-    //         labels: habitLabels,
-    //         datasets: [{
-    //           label: "Habit continuity",
-    //           data: habitContinuityData,
-    //           borderColor: "rgb(34, 197, 94)",
-    //           backgroundColor: "rgba(34, 197, 94, 0.15)",
-    //           fill: true, tension: 0.35, pointRadius: 4,
-    //         }],
-    //       },
-    //       options: {
-    //         responsive: true, maintainAspectRatio: false,
-    //         plugins: { legend: { display: false }, tooltip: { intersect: false, mode: "index" } },
-    //         scales: { y: { beginAtZero: true, suggestedMax: 10, ticks: { stepSize: 2 } } },
-    //       },
-    //     });
-
-    //     healthChartInstance.current = new Chart(healthCtx, {
-    //       type: "bar",
-    //       data: {
-    //         labels: healthLabels,
-    //         datasets: [{
-    //           label: "Overall health score",
-    //           data: healthScoreData,
-    //           backgroundColor: "rgba(59, 130, 246, 0.8)",
-    //           borderRadius: 12, barPercentage: 0.65,
-    //         }],
-    //       },
-    //       options: {
-    //         responsive: true, maintainAspectRatio: false,
-    //         plugins: { legend: { display: false }, tooltip: { intersect: false, mode: "index" } },
-    //         scales: { y: { beginAtZero: true, suggestedMax: 100, ticks: { stepSize: 20 } } },
-    //       },
-    //     });
-
-    //   } catch (err) {
-    //     console.error("Failed to fetch graph data", err);
-    //   }
-    // }
 
     if (!loading) {
       fetchDateTime();
@@ -461,7 +364,6 @@ const healthChartInstance = useRef<any>(null);
   }, [loading]);
 
   const [isJournalOpen, setIsJournalOpen] = useState(false);
-
   const habitsCompleted = Object.values(checkedHabits).filter(Boolean).length;
 
   const sections = [
@@ -580,7 +482,7 @@ const healthChartInstance = useRef<any>(null);
           ))}
         </div>
 
-        {/* Medication schedule  + carousel */}
+        {/* Medication schedule + carousel */}
         <div className="mt-8 w-full h-full grid grid-cols-[3fr_1fr] gap-3">
           <div className="bg-gray-60 rounded-xl border border-gray-200 shadow-sm p-8">
             <h2 className="text-lg font-bold text-[#1D4258] mb-3">Medication Schedule</h2>

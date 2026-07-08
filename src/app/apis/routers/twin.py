@@ -31,6 +31,39 @@ Endpoints:
 
 import os
 import sys
+"""
+routers/twin.py
+---------------
+All /twin/* FastAPI endpoints for the Ayurveda Digital Twin.
+
+Endpoints:
+    POST /twin/assess/{patient_id}
+        Full pipeline: reads latest wellness_assessment from DB, runs
+        recommendation engine against aura_wellness rules, calls Groq LLM,
+        saves prediction, returns assessment + forecast + habit/daily verdicts.
+
+    POST /twin/habits/{habit_id}/discard
+        Soft-deletes a habit (sets active=false).
+
+    POST /twin/habits/{habit_id}/modify
+        Updates habit fields per LLM's suggested_change.
+
+    POST /twin/dailies/{daily_id}/discard
+        Soft-deletes a daily.
+
+    POST /twin/dailies/{daily_id}/modify
+        Updates daily fields.
+
+    POST /twin/suggestions/{prediction_id}/accept
+        Accepts a new habit/daily suggestion from a prediction row,
+        inserting it into the habits or dailies table.
+
+    GET  /twin/history/{patient_id}
+        Returns last N predictions for a patient (for frontend trend display).
+"""
+
+import os
+import sys
 import json
 import re
 import urllib.request
@@ -40,7 +73,21 @@ from typing import Optional
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException
+import asyncpg
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+
+from database import get_dina_pool, get_rules_pool
+
+# Twin pipeline modules — adjust path if apis/ is not in the Python path
+# In production, add the parent directory to sys.path or install as a package
+# apis/ is in sys.path via main.py's directory being the working directory
+
+import db as twin_db
+import rules_db
+from recommendation_engine import RecommendationEngine, format_recommendations_for_prompt
+from health_score import format_form_scores_for_prompt, get_score_label, SECTION_META, FORM_QUESTIONS
+
 
 from database import get_dina_pool, get_rules_pool
 
@@ -85,6 +132,7 @@ class AcceptSuggestionRequest(BaseModel):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# GROQ LLM CALL  (same logic as run_twin.py but async-friendly via threadpool)
 # GROQ LLM CALL  (same logic as run_twin.py but async-friendly via threadpool)
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -137,6 +185,7 @@ async def call_groq(prompt: str, system_prompt: str) -> str:
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PROMPT BUILDER  (mirrors run_twin.py's serialize() but uses real DB data)
+# PROMPT BUILDER  (mirrors run_twin.py's serialize() but uses real DB data)
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _build_prompt(user, logs, meds, conditions, habits, dailies, recs, form_result, form_history) -> str:
@@ -159,7 +208,12 @@ def _submission_to_result(submission: dict, prev_submission: Optional[dict]):
         answers  = submission.get("answers") or {}
         q_scores = {qid: float(answers.get(qid, 3)) for qid in q_ids}
         sec_section_scores = submission.get("section_scores") or {}
-        raw_score = sec_section_scores.get(meta["name"], sum(q_scores.values()) / len(q_scores))
+
+        fallback_score = sum(q_scores.values()) / len(q_scores)
+        raw_score = _coerce_section_score(sec_section_scores.get(meta["name"]))
+        if raw_score is None:
+            raw_score = fallback_score
+
         weak = [q for q, v in q_scores.items() if v <= 2]
         sections.append(SimpleNamespace(
             section_id=sec_id, name=meta["name"],
@@ -211,6 +265,7 @@ def _validate_result(result: dict, current_hs: float) -> dict:
             for sec in h.get("section_scores", {}):
                 h["section_scores"][sec] = round(max(1.0, min(5.0, float(h["section_scores"][sec]))), 2)
             h.setdefault("key_drivers", [])
+            h.setdefault("recovery_note", "")
             h.setdefault("recovery_note", "")
     return result
 

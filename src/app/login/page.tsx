@@ -34,38 +34,76 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex w-full items-stretch dina-background">
-      <div className=" w-1/2 flex items-center justify-center bg-[#6a9974] rounded-r-xl z-1 relative">
-        <div className="flex flex-col items-center justify-center text-center gap-4 w-3/4 bg-white p-8 rounded-xl shadow-md">
-          <p className="dina-heading text-lg font-bold">Login</p>
+    <main
+      className="min-h-screen flex items-center justify-center"
+      style={{
+        backgroundImage: "url('/loginBg.png')",
+        backgroundPosition: 'center',
+        backgroundSize: 'fit',
+      }}
+    >
+      <div className="absolute inset-0 bg-black/20 " aria-hidden="true" />
 
-          <input
-            type="text"
-            placeholder="Prakriti ID"
-            value={prakriti_id}
-            onChange={e => setPrakritiId(e.target.value)}
-            className="dina-input" // use your existing input styles
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={e => setPassword(e.target.value)}
-            className="dina-input"
-          />
+      <div className="relative z-10 w-full max-w-lg">
+        <div className="mx-3/4 bg-white/2 backdrop-blur-lg border border-white/5 rounded-2xl p-12 shadow-2xl">
+          <h1 className="text-center text-4xl pb-4 font-merriweather font-weight-800 text-white tracking-wider mb-6">LOGIN</h1>
 
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-
-          <button
-            onClick={handleLogin}
-            disabled={loading}
-            className="dina-button"
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              handleLogin();
+            }}
+            className="flex flex-col gap-4"
+            aria-labelledby="login-heading"
           >
-            {loading ? 'Logging in...' : 'Login'}
-          </button>
+            <label htmlFor="prakriti_id" className="sr-only">
+              Prakriti ID
+            </label>
+            <input
+              id="prakriti_id"
+              name="prakriti_id"
+              type="text"
+              placeholder="Prakriti ID"
+              value={prakriti_id}
+              onChange={e => setPrakritiId(e.target.value)}
+              className="w-full px-2 py-3 rounded-lg bg-white border border-green-800 text-gray-800 text-sm placeholder-gray-500 focus:outline-none"
+              required
+              aria-required="true"
+            />
+
+            <label htmlFor="password" className="sr-only">
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              className="w-full px-2 py-3 rounded-lg bg-white mb-3 text-gray-800 text-sm placeholder-gray-500 focus:outline-none"
+              required
+              aria-required="true"
+            />
+
+            {error && <p className="text-red-300 text-sm">{error}</p>}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-2 w-full py-2 rounded-lg bg-gradient-to-r from-green-600 to-green-800 text-white font-semibold shadow-md disabled:opacity-60"
+            >
+              {loading ? 'Logging in...' : 'Login'}
+            </button>
+
+            <div className="mt-4 text-center">
+              <a href="#" className="text-sm text-white/80 underline">
+                Forgot password?
+              </a>
+            </div>
+          </form>
         </div>
       </div>
-      <div className="bg-green-400 w-1/2"></div>
     </main>
   );
 }

@@ -440,6 +440,32 @@ async def save_wellness_assessment(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+def _normalize_scenario(val) -> dict:
+    """
+    Defensively normalizes a stored `high_compliance` / `low_compliance`
+    value into the expected {"compliance_pct": ..., "horizons": [...]} shape.
+
+    Handles:
+      - a JSON string  -> parsed
+      - a bare list     -> wrapped as {"horizons": [...]}  (covers rows saved
+                            before this normalization existed, or LLM output
+                            that returned a bare array instead of the full
+                            scenario object)
+      - a dict          -> returned as-is
+      - None / anything else -> {}
+    """
+    if isinstance(val, str):
+        try:
+            val = json.loads(val)
+        except (json.JSONDecodeError, TypeError):
+            val = {}
+    if isinstance(val, list):
+        return {"horizons": val}
+    if isinstance(val, dict):
+        return val
+    return {}
+
+
 async def get_past_predictions_with_actuals(
     pool: asyncpg.Pool, patient_id: str, last_n: int = 5
 ) -> list:
@@ -495,15 +521,11 @@ async def get_past_predictions_with_actuals(
     for pred in reversed(pred_rows):   # oldest first
         forecast_date = pred["forecast_date"]
 
-        # Parse compliance scenarios
-        high = pred["high_compliance"] or {}
-        low  = pred["low_compliance"]  or {}
-        if isinstance(high, str):
-            try: high = json.loads(high)
-            except: high = {}
-        if isinstance(low, str):
-            try: low = json.loads(low)
-            except: low = {}
+        # Parse compliance scenarios — defensively handle both the expected
+        # {"compliance_pct":..., "horizons":[...]} shape and legacy/malformed
+        # rows where only a bare horizons list was ever stored.
+        high = _normalize_scenario(pred["high_compliance"])
+        low  = _normalize_scenario(pred["low_compliance"])
 
         horizons_data = []
         total_error   = 0.0
@@ -515,8 +537,8 @@ async def get_past_predictions_with_actuals(
             target_date = forecast_date + __import__("datetime").timedelta(days=horizon)
 
             # Get predicted scores for this horizon
-            high_pred = next((h["predicted_health_score"] for h in high.get("horizons", []) if h["day"] == horizon), None)
-            low_pred  = next((h["predicted_health_score"] for h in low.get("horizons",  []) if h["day"] == horizon), None)
+            high_pred = next((h["predicted_health_score"] for h in high.get("horizons", []) if h.get("day") == horizon), None)
+            low_pred  = next((h["predicted_health_score"] for h in low.get("horizons",  []) if h.get("day") == horizon), None)
 
             # Find actual score closest to this date
             match = find_closest_assessment(target_date, assessment_rows)

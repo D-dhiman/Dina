@@ -7,7 +7,7 @@ import Navbar from "../components/navbar";
 import {
   Star, FileText, Salad, Fish, Candy,
   Trash2, Sparkles, CalendarDays, Apple, CheckCircle2,
-  TrendingUp, AlertTriangle, Undo2
+  TrendingUp, AlertTriangle, Undo2, Plus, X
 } from "lucide-react";
 // ─────────────────────────────────────────────────────────────────────────
 // Types — mirror the REAL /twin/assess/{patient_id} response from
@@ -149,16 +149,39 @@ const TAG_LABEL: Record<VerdictTag, string> = {
   unlisted: "Unreviewed",
 };
 
+// Shape of the manual "doctor prescribed" add form — mapped directly onto
+// the /twin/{habits|dailies}/sync payload shape (routers/twin.py's
+// sync_habits / sync_dailies, system_action="new").
+interface NewPrescriptionForm {
+  habit_name: string;
+  category: string;
+  prescribed_time: string; // HH:MM from <input type="time">
+  frequency: string;
+  details: string;
+}
+
+const EMPTY_FORM: NewPrescriptionForm = {
+  habit_name: "",
+  category: "",
+  prescribed_time: "08:00",
+  frequency: "daily",
+  details: "",
+};
+
 export default function HealthReportPage() {
   const router = useRouter();
 
-  const testPatientId = "pid1789456";
+  // Real logged-in patient's ID — set by src/app/login/page.tsx via
+  // localStorage.setItem('prakriti_id', data.prakriti_id) on successful login.
+  // This is the same value db.py's get_user() looks up via
+  // `WHERE prakriti_id = $1`, i.e. the patient_id the backend expects.
+  const [patientId, setPatientId] = useState<string | null>(null);
 
   const [assessment, setAssessment] = useState<AssessResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Local, editable copies of the DB-backed lists so discard/accept actions
+  // Local, editable copies of the DB-backed lists so discard/accept/add actions
   // can update the UI without re-running the (expensive) LLM assessment.
   const [existingHabits, setExistingHabits] = useState<ExistingItem[]>([]);
   const [existingDailies, setExistingDailies] = useState<ExistingItem[]>([]);
@@ -168,6 +191,7 @@ export default function HealthReportPage() {
   const [pendingActionKey, setPendingActionKey] = useState<string | null>(null);
 
   const fetchAssessment = useCallback(async () => {
+    if (!patientId) return; // wait until we've read the real patient ID from localStorage
     try {
       setLoading(true);
       setErrorMsg(null);
@@ -178,7 +202,7 @@ export default function HealthReportPage() {
       }
 
       // NOTE: this is a POST endpoint on the backend (routers/twin.py), not GET.
-      const res = await fetch(`${BACKEND_URL}/twin/assess/${testPatientId}`, {
+      const res = await fetch(`${BACKEND_URL}/twin/assess/${patientId}`, {
         method: "POST",
         headers: authHeaders(),
       });
@@ -203,11 +227,24 @@ export default function HealthReportPage() {
     } finally {
       setLoading(false);
     }
-  }, [router, testPatientId]);
+  }, [router, patientId]);
+
+  // Read the logged-in patient's ID from localStorage on mount. If it's
+  // missing (never logged in, or an older session predating this field),
+  // send them back to /login rather than silently falling back to a
+  // hardcoded test patient.
+  useEffect(() => {
+    const storedId = typeof window !== "undefined" ? localStorage.getItem("prakriti_id") : null;
+    if (!storedId) {
+      router.push("/login");
+      return;
+    }
+    setPatientId(storedId);
+  }, [router]);
 
   useEffect(() => {
-    fetchAssessment();
-  }, [fetchAssessment]);
+    if (patientId) fetchAssessment();
+  }, [fetchAssessment, patientId]);
 
   // ── Actions against the real backend routes ─────────────────────────────
   const handleDiscard = async (type: "habit" | "daily", item: ExistingItem) => {
@@ -259,6 +296,74 @@ export default function HealthReportPage() {
     } catch (err) {
       console.error(err);
       alert(`Could not accept "${suggestion.name}". Please try again.`);
+    } finally {
+      setPendingActionKey(null);
+    }
+  };
+
+  // Manually add a doctor-prescribed habit/daily directly against the DB,
+  // bypassing the LLM entirely. Reuses the existing bulk /sync endpoints
+  // (routers/twin.py: sync_habits / sync_dailies) with a single-item payload
+  // and system_action: "new", which calls insert_habit / insert_daily.
+  const handleAddPrescribed = async (type: "habit" | "daily", form: NewPrescriptionForm): Promise<boolean> => {
+    if (!patientId) {
+      alert("No patient ID found — please log in again.");
+      return false;
+    }
+    if (!form.habit_name.trim()) {
+      alert("Please enter a name for the prescribed item.");
+      return false;
+    }
+    const key = `add-${type}`;
+    setPendingActionKey(key);
+    try {
+      const endpoint = type === "habit"
+        ? `${BACKEND_URL}/twin/habits/sync`
+        : `${BACKEND_URL}/twin/dailies/sync`;
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          patient_id: patientId,
+          prescriptions: [
+            {
+              name: form.habit_name.trim(),
+              category: form.category.trim() || "general",
+              prescribed_time: form.prescribed_time ? `${form.prescribed_time}:00` : "08:00:00",
+              frequency: form.frequency.trim() || "daily",
+              details: form.details.trim() || undefined,
+              system_action: "new",
+            },
+          ],
+        }),
+      });
+
+      if (!res.ok) throw new Error(`Add failed with status ${res.status}`);
+      const data = await res.json();
+      const result = data?.results?.[0];
+
+      if (!result) {
+        throw new Error("Backend returned no result for the new item.");
+      }
+
+      if (result.action === "inserted") {
+        const inserted = type === "habit" ? result.habit : result.daily;
+        if (inserted) {
+          if (type === "habit") setExistingHabits(prev => [...prev, inserted]);
+          else setExistingDailies(prev => [...prev, inserted]);
+        }
+        return true;
+      } else if (result.action === "skipped_existing") {
+        alert(`"${form.habit_name}" already exists as an active ${type} — not adding a duplicate.`);
+        return false;
+      } else {
+        throw new Error(result.reason || result.error || "Unknown backend response.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert(`Could not add "${form.habit_name}". Please try again.`);
+      return false;
     } finally {
       setPendingActionKey(null);
     }
@@ -323,7 +428,7 @@ export default function HealthReportPage() {
                     Full Body Map
                   </span>
                 </div>
-                <div className="text-right text-xs text-emerald-400 font-bold">ID: #{testPatientId.toUpperCase()}</div>
+                <div className="text-right text-xs text-emerald-400 font-bold">ID: #{(patientId || "").toUpperCase()}</div>
               </div>
 
               <div className="z-10 flex flex-col items-center justify-center text-center py-6">
@@ -461,7 +566,7 @@ export default function HealthReportPage() {
             </div>
           </div>
 
-          {/* COLUMN 2: Dailies — existing items + LLM verdicts + new suggestions */}
+          {/* COLUMN 2: Dailies — existing items + LLM verdicts + new suggestions + manual add */}
           <VerdictColumn
             title="Dailies"
             icon={<CalendarDays size={18} className="text-slate-800" />}
@@ -474,9 +579,10 @@ export default function HealthReportPage() {
             pendingActionKey={pendingActionKey}
             onDiscard={(item) => handleDiscard("daily", item)}
             onAccept={(s) => handleAcceptSuggestion("daily", s)}
+            onAddPrescribed={(form) => handleAddPrescribed("daily", form)}
           />
 
-          {/* COLUMN 3: Habits — existing items + LLM verdicts + new suggestions */}
+          {/* COLUMN 3: Habits — existing items + LLM verdicts + new suggestions + manual add */}
           <VerdictColumn
             title="Habits"
             icon={<Sparkles size={18} className="text-emerald-950" />}
@@ -489,6 +595,7 @@ export default function HealthReportPage() {
             pendingActionKey={pendingActionKey}
             onDiscard={(item) => handleDiscard("habit", item)}
             onAccept={(s) => handleAcceptSuggestion("habit", s)}
+            onAddPrescribed={(form) => handleAddPrescribed("habit", form)}
           />
 
         </div>
@@ -530,7 +637,7 @@ export default function HealthReportPage() {
 function VerdictColumn({
   title, icon, tint, accentText, accentBtn,
   existingItems, verdict, newSuggestions, pendingActionKey,
-  onDiscard, onAccept,
+  onDiscard, onAccept, onAddPrescribed,
 }: {
   title: string;
   icon: React.ReactNode;
@@ -543,8 +650,27 @@ function VerdictColumn({
   pendingActionKey: string | null;
   onDiscard: (item: ExistingItem) => void;
   onAccept: (s: VerdictNew) => void;
+  onAddPrescribed: (form: NewPrescriptionForm) => Promise<boolean>;
 }) {
   const type = title === "Habits" ? "habit" : "daily";
+
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [form, setForm] = useState<NewPrescriptionForm>(EMPTY_FORM);
+
+  const addKey = `add-${type}`;
+  const isAdding = pendingActionKey === addKey;
+
+  const updateField = (field: keyof NewPrescriptionForm, value: string) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const submitForm = async () => {
+    const ok = await onAddPrescribed(form);
+    if (ok) {
+      setForm(EMPTY_FORM);
+      setShowAddForm(false);
+    }
+  };
 
   return (
     <div className={`rounded-3xl p-5 ${tint} shadow-sm flex flex-col justify-between`}>
@@ -619,6 +745,82 @@ function VerdictColumn({
                 );
               })}
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* Manual "doctor prescribed" add — writes straight to the DB via
+          /twin/{habits|dailies}/sync, independent of the LLM. */}
+      <div className="mt-4 pt-4 border-t border-white/40">
+        {!showAddForm ? (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className={`w-full flex items-center justify-center gap-1.5 text-white text-[11px] font-black uppercase tracking-wider px-3 py-2 rounded-xl ${accentBtn}`}
+          >
+            <Plus size={13} /> Add doctor-prescribed
+          </button>
+        ) : (
+          <div className="bg-white/80 p-3 rounded-2xl border border-gray-200 space-y-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className={`text-[10px] font-black uppercase tracking-widest ${accentText}`}>
+                New {type}
+              </span>
+              <button
+                onClick={() => { setShowAddForm(false); setForm(EMPTY_FORM); }}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <input
+              type="text"
+              placeholder="Name (e.g. Triphala at bedtime)"
+              value={form.habit_name}
+              onChange={(e) => updateField("habit_name", e.target.value)}
+              className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            />
+
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="text"
+                placeholder="Category"
+                value={form.category}
+                onChange={(e) => updateField("category", e.target.value)}
+                className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+              <input
+                type="text"
+                placeholder="Frequency (e.g. daily)"
+                value={form.frequency}
+                onChange={(e) => updateField("frequency", e.target.value)}
+                className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="time"
+                value={form.prescribed_time}
+                onChange={(e) => updateField("prescribed_time", e.target.value)}
+                className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+              <input
+                type="text"
+                placeholder="Notes (optional)"
+                value={form.details}
+                onChange={(e) => updateField("details", e.target.value)}
+                className="w-full text-xs px-2.5 py-1.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+
+            <button
+              onClick={submitForm}
+              disabled={isAdding || !form.habit_name.trim()}
+              className={`w-full flex items-center justify-center gap-1.5 text-white text-[11px] font-black uppercase tracking-wider px-3 py-2 rounded-xl disabled:opacity-40 ${accentBtn}`}
+            >
+              <CheckCircle2 size={13} /> {isAdding ? "Adding..." : "Add prescribed"}
+            </button>
           </div>
         )}
       </div>

@@ -676,8 +676,26 @@ async def save_prediction(pool: asyncpg.Pool, patient_id: str, prediction: dict)
     return str(row["id"])
 
 
-async def get_prediction(pool: asyncpg.Pool, prediction_id: str) -> Optional[dict]:
-    row = await pool.fetchrow("SELECT * FROM predictions WHERE id = $1", prediction_id)
+async def get_prediction(pool: asyncpg.Pool, patient_id_or_prediction_id: str) -> Optional[dict]:
+    """
+    If given a UUID, fetches that specific prediction.
+    If given a patient_id (non-UUID), fetches the most recent prediction for that patient.
+    This dual behaviour lets the fallback in twin.py call get_prediction(pool, patient_id)
+    without needing a separate function.
+    """
+    import re as _re
+    is_uuid = bool(_re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+                             patient_id_or_prediction_id, _re.I))
+    if is_uuid:
+        row = await pool.fetchrow(
+            "SELECT * FROM predictions WHERE id = $1", patient_id_or_prediction_id
+        )
+    else:
+        # Treat as patient_id — return most recent prediction
+        row = await pool.fetchrow(
+            "SELECT * FROM predictions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1",
+            patient_id_or_prediction_id
+        )
     if not row:
         return None
     p = dict(row)

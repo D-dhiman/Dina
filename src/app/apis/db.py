@@ -537,8 +537,26 @@ async def get_past_predictions_with_actuals(
             target_date = forecast_date + __import__("datetime").timedelta(days=horizon)
 
             # Get predicted scores for this horizon
-            high_pred = next((h["predicted_health_score"] for h in high.get("horizons", []) if h.get("day") == horizon), None)
-            low_pred  = next((h["predicted_health_score"] for h in low.get("horizons",  []) if h.get("day") == horizon), None)
+            # Get predicted scores for this horizon
+            def _as_dict(h):
+                if isinstance(h, str):
+                    try:
+                        return json.loads(h)
+                    except (json.JSONDecodeError, TypeError):
+                        return {}
+                return h if isinstance(h, dict) else {}
+
+            high_pred = next(
+                (d["predicted_health_score"] for h in high.get("horizons", [])
+                 if (d := _as_dict(h)).get("day") == horizon),
+                None
+            )
+
+            low_pred = next(
+                (d["predicted_health_score"] for h in low.get("horizons", [])
+                 if (d := _as_dict(h)).get("day") == horizon),
+                None
+            )
 
             # Find actual score closest to this date
             match = find_closest_assessment(target_date, assessment_rows)

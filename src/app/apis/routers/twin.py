@@ -439,6 +439,57 @@ def compute_calibration_adjustment(past_predictions: list) -> float:
         return 0.0
     return round(sum(biases) / len(biases), 2)
 
+
+def extract_food_prescriptions(recs: dict) -> dict:
+    """
+    Splits the recommendation engine output into food prescriptions:
+      - eat:   rules with advice_id "f"  (food allowed / recommended)
+      - avoid: rules with advice_id "fna" (food not allowed)
+
+    Each item includes the rule text, advice_type, and relevance score
+    so the frontend can sort/display them meaningfully.
+    Both habits and dailies lists are checked since food rules can be
+    classified as either depending on the rule text.
+    """
+    all_rules = recs.get("habits", []) + recs.get("dailies", []) + recs.get("avoided", [])
+
+    eat   = []
+    avoid = []
+
+    for rule in all_rules:
+        advice_id = rule.get("advice_id", "")
+        if advice_id == "f":
+            eat.append({
+                "rule":         rule["rule"],
+                "advice_type":  rule.get("advice_type", "food"),
+                "score":        rule.get("score", 0),
+                "rule_id":      rule.get("rule_id"),
+            })
+        elif advice_id == "fna":
+            avoid.append({
+                "rule":         rule["rule"],
+                "advice_type":  rule.get("advice_type", "food_not_allowed"),
+                "score":        rule.get("score", 0),
+                "rule_id":      rule.get("rule_id"),
+            })
+
+    # Sort by score descending — most relevant food rules first
+    eat.sort(key=lambda x: x["score"], reverse=True)
+    avoid.sort(key=lambda x: x["score"], reverse=True)
+
+    return {
+        "eat":   eat,
+        "avoid": avoid,
+        "context": {
+            "prakriti_id":     recs.get("prakriti_id"),
+            "ritu_id":         recs.get("ritu_id"),
+            "ritu_name":       recs.get("ritu_name"),
+            "climate_zone_id": recs.get("climate_zone_id"),
+            "climate_context": recs.get("climate_context"),
+            "dominant_excess": recs.get("dominant_excess"),
+        }
+    }
+
 # ─────────────────────────────────────────────────────────────────────────────
 # SYSTEM PROMPT  (same as run_twin.py — kept here to avoid importing a CLI script)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -608,6 +659,12 @@ async def assess(
             return {
                 "prediction_id":          str(last_prediction["id"]),
                 "patient_id":             patient_id,
+                "user":                   {
+                    "name":          user.get("name", "Patient"),
+                    "date_of_birth": str(user.get("date_of_birth", "")),
+                    "gender":        user.get("gender", ""),
+                    "health_score":  form_result.health_score,
+                },
                 "health_score":           form_result.health_score,
                 "previous_score":         form_result.previous_score,
                 "delta":                  form_result.delta,
@@ -615,8 +672,11 @@ async def assess(
                 "health_interpretation":  last_prediction.get("health_interpretation", ""),
                 "primary_driver":         last_prediction.get("primary_driver", ""),
                 "main_risk":              last_prediction.get("main_risk", ""),
-                "habits":                 last_prediction.get("habits_verdict") or {},
-                "dailies":                last_prediction.get("dailies_verdict") or {},
+                "habits_verdict":         last_prediction.get("habits_verdict") or {},
+                "dailies_verdict":        last_prediction.get("dailies_verdict") or {},
+                "existing_habits":        habits,
+                "existing_dailies":       dailies_list,
+                "food_prescriptions":     extract_food_prescriptions(recs),
                 "forecast": {
                     "high_compliance": last_prediction.get("high_compliance") or {},
                     "low_compliance":  last_prediction.get("low_compliance")  or {},
@@ -657,6 +717,12 @@ async def assess(
     return {
         "prediction_id":          prediction_id,
         "patient_id":             patient_id,
+        "user": {
+            "name":          user.get("name", "Patient"),
+            "date_of_birth": str(user.get("date_of_birth", "")),
+            "gender":        user.get("gender", ""),
+            "health_score":  form_result.health_score,
+        },
         "health_score":           form_result.health_score,
         "previous_score":         form_result.previous_score,
         "delta":                  form_result.delta,
@@ -664,8 +730,11 @@ async def assess(
         "health_interpretation":  result["health_interpretation"],
         "primary_driver":         result["primary_driver"],
         "main_risk":              result["main_risk"],
-        "habits":                 result["habits"],
-        "dailies":                result["dailies"],
+        "habits_verdict":         result["habits"],
+        "dailies_verdict":        result["dailies"],
+        "existing_habits":        habits,
+        "existing_dailies":       dailies_list,
+        "food_prescriptions":     extract_food_prescriptions(recs),
         "forecast":               result["forecast"],
         "doctor_referral":        result["doctor_referral"],
         "doctor_referral_reason": result["doctor_referral_reason"],

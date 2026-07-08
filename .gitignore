@@ -41,3 +41,7 @@ yarn-error.log*
 next-env.d.ts
 
 venv/
+
+private_key.pem
+public_key.pem
+gen_keys.py

@@ -154,17 +154,46 @@ def _submission_to_result(submission: dict, prev_submission: Optional[dict]):
     delta   = round(hs - prev_hs, 1) if prev_hs is not None else None
 
     sections = []
+    # section_scores from DB is jsonb — parse defensively
+    raw_section_scores = submission.get("section_scores") or {}
+    if isinstance(raw_section_scores, str):
+        try:
+            import json as _json
+            raw_section_scores = _json.loads(raw_section_scores)
+        except Exception:
+            raw_section_scores = {}
+
     for sec_id, meta in SECTION_META.items():
-        q_ids    = [f"q{n:02d}" for n in meta["questions"]]
-        answers  = submission.get("answers") or {}
-        q_scores = {qid: float(answers.get(qid, 3)) for qid in q_ids}
-        sec_section_scores = submission.get("section_scores") or {}
-        raw_score = sec_section_scores.get(meta["name"], sum(q_scores.values()) / len(q_scores))
+        q_ids   = [f"q{n:02d}" for n in meta["questions"]]
+        answers = submission.get("answers") or {}
+        if isinstance(answers, str):
+            try:
+                import json as _json
+                answers = _json.loads(answers)
+            except Exception:
+                answers = {}
+
+        # Coerce each answer to float, default 3 if missing/invalid
+        q_scores = {}
+        for qid in q_ids:
+            try:
+                q_scores[qid] = float(answers.get(qid, 3))
+            except (TypeError, ValueError):
+                q_scores[qid] = 3.0
+
+        fallback_score = sum(q_scores.values()) / len(q_scores)
+        stored_val = raw_section_scores.get(meta["name"], fallback_score)
+        # stored_val could be float, int, str, or nested dict — coerce safely
+        try:
+            raw_score = float(stored_val) if not isinstance(stored_val, dict) else fallback_score
+        except (TypeError, ValueError):
+            raw_score = fallback_score
+
         weak = [q for q, v in q_scores.items() if v <= 2]
         sections.append(SimpleNamespace(
             section_id=sec_id, name=meta["name"],
             ayurveda_name=meta["ayurveda"], weight=meta["weight"],
-            raw_score=float(raw_score), weak_questions=weak,
+            raw_score=round(raw_score, 3), weak_questions=weak,
             strong_questions=[q for q, v in q_scores.items() if v == 5],
             question_scores=q_scores,
         ))

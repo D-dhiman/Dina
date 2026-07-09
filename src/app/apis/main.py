@@ -27,6 +27,8 @@ from routers import twin
 from routers import timezone 
 
 
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # .env LOADER
 # Walks up from this file's directory to find .env in the project root.
@@ -69,15 +71,17 @@ _load_dotenv()
 # LIFESPAN  (replaces deprecated @app.on_event)
 # Both pools are created here so they're ready before any request arrives.
 # ─────────────────────────────────────────────────────────────────────────────
-
+from notifications.scheduler import start_scheduler, stop_scheduler
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # ── startup ───────────────────────────────────────────────────────────────
     print("[startup] Initializing database pools...")
     await init_pools()
     print("[startup] Ready.")
+    start_scheduler() 
     yield
     # ── shutdown ──────────────────────────────────────────────────────────────
+    stop_scheduler()  
     print("[shutdown] Closing database pools...")
     await close_pools()
     print("[shutdown] Done.")

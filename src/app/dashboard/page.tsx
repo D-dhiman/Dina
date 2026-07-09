@@ -18,6 +18,7 @@ import Navbar from "../components/navbar";
 import JournalLog from "../components/journalLog";
 import { Flame, ChevronDown } from "lucide-react";
 import HealthCarousel from "../components/HealthCarousel";
+import usePushNotifications from "../components/usePushNotifications";
 
 Chart.register(
   CategoryScale, LinearScale, LineController, LineElement,
@@ -252,6 +253,7 @@ interface Habit { id: string; habit_name: string; streak_count: number; }
 
 export default function DashboardPage() {
   const router = useRouter();
+  usePushNotifications();
 
   // 1. References for the HTML <canvas> elements
   const habitContinuityChartRef = useRef<HTMLCanvasElement | null>(null);

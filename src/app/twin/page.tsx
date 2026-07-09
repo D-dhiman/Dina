@@ -9,11 +9,30 @@ import {
   Trash2, Sparkles, CalendarDays, Apple, CheckCircle2,
   TrendingUp, AlertTriangle, Undo2, Plus, X
 } from "lucide-react";
-
 // ─────────────────────────────────────────────────────────────────────────
 // Types — mirror the REAL /twin/assess/{patient_id} response from
 // routers/twin.py exactly. Nothing here is guessed/mocked.
 // ─────────────────────────────────────────────────────────────────────────
+import * as React from "react";
+import "@google/model-viewer";
+
+declare module "react" {
+  namespace JSX {
+    interface IntrinsicElements {
+      "model-viewer": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement> & {
+        src?: string;
+        alt?: string;
+        "camera-controls"?: boolean;
+        "auto-rotate"?: boolean;
+        "shadow-intensity"?: string;
+        exposure?: string;
+        poster?: string;
+        loading?: "auto" | "lazy" | "eager";
+        ar?: boolean;
+      };
+    }
+  }
+}
 
 interface VerdictKeep { name: string; reason: string }
 interface VerdictModify { name: string; current_issue: string; suggested_change: string }
@@ -412,11 +431,18 @@ export default function HealthReportPage() {
                 <div className="text-right text-xs text-emerald-400 font-bold">ID: #{(patientId || "").toUpperCase()}</div>
               </div>
 
-              <div className="z-10 flex flex-col items-center justify-center text-center py-12">
-                <div className="w-32 h-32 rounded-full bg-white/10 border-4 border-white/20 flex items-center justify-center text-white text-4xl font-black mb-4 shadow-lg backdrop-blur-xs transition-transform hover:scale-105 duration-300">
-                  {userName.charAt(0).toUpperCase()}
-                </div>
-                <h2 className="text-2xl font-black text-white font-sans tracking-tight">{userName}</h2>
+              <div className="z-10 flex flex-col items-center justify-center text-center py-6">
+                <model-viewer
+                  src="/character.glb"
+                  alt={`3D avatar for ${userName}`}
+                  camera-controls
+                  auto-rotate
+                  shadow-intensity="1"
+                  exposure="1"
+                  loading="eager"
+                  style={{ width: "200px", height: "260px", background: "transparent" }}
+                />
+                <h2 className="text-2xl font-black text-white font-sans tracking-tight mt-1">{userName}</h2>
                 <p className="text-emerald-300 text-sm font-sans font-bold mt-1">Age {userAge} · {userGender}</p>
               </div>
 

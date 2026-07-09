@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-  "dev": "next dev --webpack",
-  "build": "next build",
-  "start": "node --max-old-space-size=3072 node_modules/next/dist/bin/next start",
-  "lint": "next lint"
-},
+    "dev": "next dev --webpack",
+    "build": "next build",
+    "start": "node --max-old-space-size=3072 node_modules/next/dist/bin/next start",
+    "lint": "next lint"
+  },
   "dependencies": {
     "@auth/pg-adapter": "^1.11.2",
+    "@google/model-viewer": "^4.3.1",
     "bcryptjs": "^3.0.3",
     "chart.js": "^4.5.1",
     "i18next": "^26.3.1",

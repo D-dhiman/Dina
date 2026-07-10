@@ -62,15 +62,31 @@ export async function POST(req) {
     );
 
     // Prune: keep only the 5 most recent by created_at, delete the rest
+    // First remove predictions tied to assessments we're about to delete
+    await pool.query(
+      `DELETE FROM predictions
+      WHERE wellness_assessment_id IN (
+        SELECT id FROM wellness_assessments
+        WHERE user_id = $1
+        AND id NOT IN (
+          SELECT id FROM wellness_assessments
+          WHERE user_id = $1
+          ORDER BY created_at DESC
+          LIMIT 5
+        )
+      )`,
+      [prakriti_id]
+    );
+
     await pool.query(
       `DELETE FROM wellness_assessments
-       WHERE user_id = $1
-       AND id NOT IN (
-         SELECT id FROM wellness_assessments
-         WHERE user_id = $1
-         ORDER BY created_at DESC
-         LIMIT 5
-       )`,
+      WHERE user_id = $1
+      AND id NOT IN (
+        SELECT id FROM wellness_assessments
+        WHERE user_id = $1
+        ORDER BY created_at DESC
+        LIMIT 5
+      )`,
       [prakriti_id]
     );
 

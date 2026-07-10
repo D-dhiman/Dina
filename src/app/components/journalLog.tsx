@@ -351,8 +351,8 @@ export default function JournalLog() {
                   className="bg-white/60 border border-black/[0.08] rounded-xl px-3 py-2 text-sm text-gray-800 w-full focus:outline-none" />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-semibold text-gray-500">Calories</label>
-                <input type="number" placeholder="kcal" value={meals[key].calories}
+                <label className="text-sm font-semibold text-gray-500">Meal</label>
+                <input type="text" placeholder="Meal name" value={meals[key].calories}
                   onChange={(e) => updateMeal(key, "calories", e.target.value)}
                   className="bg-white/60 border border-black/[0.08] rounded-xl px-3 py-2 text-sm text-gray-800 w-full focus:outline-none" />
               </div>

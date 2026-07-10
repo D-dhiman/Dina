@@ -120,12 +120,20 @@ export default function WellnessPage() {
                 <p className="text-4xl font-black text-[#065f46]">{pct}</p>
                 <p className="text-xs text-[#065f46]/70 font-semibold mt-1">out of 100</p>
             </div>
-            <button
-                onClick={() => router.push("/dashboard")}
-                className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors"
-            >
-                Back to dashboard
-            </button>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <button
+                  onClick={() => router.push("/dashboard")}
+                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors"
+              >
+                  Back to dashboard
+              </button>
+              <button
+                  onClick={() => router.push("/twin")}
+                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors"
+              >
+                  Twin analysis
+              </button>
+            </div>
             </div>
         </main>
         <Navbar />

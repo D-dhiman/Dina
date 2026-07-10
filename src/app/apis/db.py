@@ -382,6 +382,24 @@ async def get_wellness_assessments(pool: asyncpg.Pool, patient_id: str, last_n: 
                     a[jsonb_field] = json.loads(a[jsonb_field])
                 except (json.JSONDecodeError, TypeError):
                     a[jsonb_field] = {}
+            elif a.get(jsonb_field) is None:
+                a[jsonb_field] = {}
+
+        # Ensure section_scores values are plain floats — if the DB stored
+        # nested dicts, flatten to float so format strings never crash.
+        coerced = {}
+        for sec_name, sec_val in (a.get("section_scores") or {}).items():
+            if isinstance(sec_val, dict):
+                coerced[sec_name] = float(
+                    sec_val.get("score") or sec_val.get("value") or
+                    sec_val.get("raw_score") or 3.0
+                )
+            else:
+                try:
+                    coerced[sec_name] = float(sec_val)
+                except (TypeError, ValueError):
+                    coerced[sec_name] = 3.0
+        a["section_scores"] = coerced
 
         # Derive label + weak_questions + dosha_signals on the fly since
         # wellness_assessments doesn't store these directly — recompute
@@ -440,32 +458,6 @@ async def save_wellness_assessment(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _normalize_scenario(val) -> dict:
-    """
-    Defensively normalizes a stored `high_compliance` / `low_compliance`
-    value into the expected {"compliance_pct": ..., "horizons": [...]} shape.
-
-    Handles:
-      - a JSON string  -> parsed
-      - a bare list     -> wrapped as {"horizons": [...]}  (covers rows saved
-                            before this normalization existed, or LLM output
-                            that returned a bare array instead of the full
-                            scenario object)
-      - a dict          -> returned as-is
-      - None / anything else -> {}
-    """
-    if isinstance(val, str):
-        try:
-            val = json.loads(val)
-        except (json.JSONDecodeError, TypeError):
-            val = {}
-    if isinstance(val, list):
-        return {"horizons": val}
-    if isinstance(val, dict):
-        return val
-    return {}
-
-
 async def get_past_predictions_with_actuals(
     pool: asyncpg.Pool, patient_id: str, last_n: int = 5
 ) -> list:
@@ -521,11 +513,15 @@ async def get_past_predictions_with_actuals(
     for pred in reversed(pred_rows):   # oldest first
         forecast_date = pred["forecast_date"]
 
-        # Parse compliance scenarios — defensively handle both the expected
-        # {"compliance_pct":..., "horizons":[...]} shape and legacy/malformed
-        # rows where only a bare horizons list was ever stored.
-        high = _normalize_scenario(pred["high_compliance"])
-        low  = _normalize_scenario(pred["low_compliance"])
+        # Parse compliance scenarios
+        high = pred["high_compliance"] or {}
+        low  = pred["low_compliance"]  or {}
+        if isinstance(high, str):
+            try: high = json.loads(high)
+            except: high = {}
+        if isinstance(low, str):
+            try: low = json.loads(low)
+            except: low = {}
 
         horizons_data = []
         total_error   = 0.0
@@ -537,26 +533,8 @@ async def get_past_predictions_with_actuals(
             target_date = forecast_date + __import__("datetime").timedelta(days=horizon)
 
             # Get predicted scores for this horizon
-            # Get predicted scores for this horizon
-            def _as_dict(h):
-                if isinstance(h, str):
-                    try:
-                        return json.loads(h)
-                    except (json.JSONDecodeError, TypeError):
-                        return {}
-                return h if isinstance(h, dict) else {}
-
-            high_pred = next(
-                (d["predicted_health_score"] for h in high.get("horizons", [])
-                 if (d := _as_dict(h)).get("day") == horizon),
-                None
-            )
-
-            low_pred = next(
-                (d["predicted_health_score"] for h in low.get("horizons", [])
-                 if (d := _as_dict(h)).get("day") == horizon),
-                None
-            )
+            high_pred = next((h["predicted_health_score"] for h in high.get("horizons", []) if h["day"] == horizon), None)
+            low_pred  = next((h["predicted_health_score"] for h in low.get("horizons",  []) if h["day"] == horizon), None)
 
             # Find actual score closest to this date
             match = find_closest_assessment(target_date, assessment_rows)

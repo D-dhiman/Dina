@@ -6,3 +6,7 @@ pydantic>=2.0.0
 timezonefinder 
 httpx 
 pytz
+apscheduler>=3.10.0
+pywebpush>=2.0.0
+py-vapid>=1.9.0
+cryptography>=42.0.0

@@ -433,10 +433,9 @@ export default function HealthReportPage() {
 
               <div className="z-10 flex flex-col items-center justify-center text-center py-6">
                 <model-viewer
-                  src="/character.glb"
+                  src="/dinaChar.glb"
                   alt={`3D avatar for ${userName}`}
                   camera-controls
-                  auto-rotate
                   shadow-intensity="1"
                   exposure="1"
                   loading="eager"

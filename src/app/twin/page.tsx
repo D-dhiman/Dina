@@ -420,15 +420,15 @@ export default function HealthReportPage() {
 
           {/* LEFT SIDE PANEL: Profile Map */}
           <div className="md:col-span-5 h-full">
-            <div className="bg-[#062e14] text-emerald-200 font-mono text-xl h-full min-h-[28rem] rounded-3xl flex flex-col justify-between p-6 shadow-xl relative overflow-hidden border border-[#14532d]">
+            <div className="bg-[#182221] text-[#AAF790] font-mono text-xl h-full min-h-[28rem] rounded-3xl flex flex-col justify-between p-6 shadow-xl relative overflow-hidden border border-[#14532d]">
               <div className="absolute inset-0 bg-gradient-to-b from-emerald-950/40 via-transparent to-black/80 pointer-events-none" />
               <div className="z-10 flex justify-between items-start">
                 <div>
-                  <span className="text-xs bg-emerald-500/20 text-emerald-300 font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-emerald-500/30">
+                  <span className="text-xs bg-[#AAF790]/20 text-[#AAF790] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider border border-[#AAF790]/30">
                     Full Body Map
                   </span>
                 </div>
-                <div className="text-right text-xs text-emerald-400 font-bold">ID: #{(patientId || "").toUpperCase()}</div>
+                <div className="text-right text-xs text-[#AAF790] font-bold">ID: #{(patientId || "").toUpperCase()}</div>
               </div>
 
               <div className="z-10 flex flex-col items-center justify-center text-center py-6">
@@ -443,11 +443,11 @@ export default function HealthReportPage() {
                   style={{ width: "200px", height: "260px", background: "transparent" }}
                 />
                 <h2 className="text-2xl font-black text-white font-sans tracking-tight mt-1">{userName}</h2>
-                <p className="text-emerald-300 text-sm font-sans font-bold mt-1">Age {userAge} · {userGender}</p>
+                <p className="text-[#CFF5BE] text-sm font-sans font-bold mt-1">Age {userAge} · {userGender}</p>
               </div>
 
               <div className="z-10 bg-white/10 p-3 rounded-2xl border border-white/10 backdrop-blur-md">
-                <p className="text-[11px] font-sans font-medium text-emerald-200 text-center uppercase tracking-widest">
+                <p className="text-[11px] font-sans font-medium text-[#D9F7CC] text-center uppercase tracking-widest">
                   {label ? `Status: ${label}` : "Rendering complete • System stable"}
                 </p>
               </div>
@@ -458,10 +458,10 @@ export default function HealthReportPage() {
           <div className="md:col-span-7 space-y-6 flex flex-col justify-between">
 
             {/* Health Score Panel Box */}
-            <div className="bg-white p-5 rounded-3xl border border-gray-200 shadow-sm flex items-center justify-between hover:shadow-md transition-all duration-300 relative overflow-hidden">
+            <div className="p-5 rounded-3xlflex items-center justify-between  relative overflow-hidden">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center shadow-inner border border-amber-200 shrink-0">
-                  <Star size={30} className="text-amber-600 fill-amber-500" />
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0">
+                  <Star size={50} className="text-[#FCDA00] fill-[#FEE900]" />
                 </div>
                 <div>
                   <div className="flex items-baseline gap-2">
@@ -498,20 +498,20 @@ export default function HealthReportPage() {
 
             {/* Matrix Block Explanations Panel */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="rounded-3xl p-5 bg-gradient-to-br from-red-50 to-orange-100 border border-orange-200 shadow-sm">
-                <div className="font-mono text-xs text-orange-950 uppercase tracking-widest mb-2 font-extrabold flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-red-600" /> Main risk
+              <div className="rounded-3xl p-5 bg-[#D68888] border border-[#FFABA8] shadow-sm">
+                <div className="font-mono text-xs text-[#3B0D01] uppercase tracking-widest mb-2 font-extrabold pl-3">
+                  Main risk
                 </div>
-                <p className="text-xs font-semibold text-orange-900 leading-relaxed bg-white/60 p-3 rounded-2xl border border-orange-200/40">
+                <p className="text-xs font-semibold text-[#3B0D01] leading-relaxed bg-white/60 p-3 rounded-2xl border border-[#FFABA8]">
                   {main_risk || "No specific risk flagged for this assessment."}
                 </p>
               </div>
 
-              <div className="rounded-3xl p-5 bg-gradient-to-br from-emerald-50 to-teal-100 border border-emerald-200 shadow-sm">
-                <div className="font-mono text-xs text-emerald-950 uppercase tracking-widest mb-2 font-extrabold flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-600" /> Primary driver
+              <div className="rounded-3xl p-5 bg-[#A1BD7F] border border-[#BDF4A4] shadow-sm">
+                <div className="font-mono text-xs text-[#062e14] uppercase tracking-widest mb-2 font-extrabold pl-3">
+                  Primary driver
                 </div>
-                <p className="text-xs font-semibold text-emerald-900 leading-relaxed bg-white/60 p-3 rounded-2xl border border-emerald-200/40">
+                <p className="text-xs font-semibold text-[#062e14] leading-relaxed bg-white/60 p-3 rounded-2xl border border-[#BDF4A4]">
                   {primary_driver || "No dominant driver identified this cycle."}
                 </p>
               </div>
@@ -519,14 +519,13 @@ export default function HealthReportPage() {
 
             {/* Evaluation Interpretation */}
             <div className="rounded-3xl p-5 bg-white border border-gray-200 shadow-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <FileText size={18} className="text-[#062e14]" />
-                <h3 className="text-xs font-black uppercase tracking-widest text-[#062e14]">
+              <div className="flex items-center gap-2 mb-2 pl-4">
+                <h3 className="text-md font-extrabold uppercase tracking-widest text-[#062e14] pt-2">
                   Interpretation for the health report
                 </h3>
               </div>
-              <div className="bg-[#f8f9f5] p-3 rounded-2xl border border-gray-200">
-                <p className="text-sm font-medium text-gray-800 leading-relaxed">
+              <div className="pt-2 pl-4 pb-2 pr-2 rounded-2xl">
+                <p className="text-sm font-light text-gray-800 leading-relaxed">
                   {health_interpretation || "No interpretation available for this assessment."}
                 </p>
               </div>
@@ -539,26 +538,26 @@ export default function HealthReportPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 items-stretch">
 
           {/* COLUMN 1: Cleaned Food Prescription Block (unchanged — no backend field for this yet) */}
-          <div className="rounded-3xl p-5 bg-white border border-gray-200 shadow-sm flex flex-col group relative overflow-hidden">
-            <div className="absolute -right-6 -top-6 text-gray-100 pointer-events-none transform group-hover:scale-110 transition-transform duration-500">
+          <div className="rounded-3xl p-5 bg-[#EEE799] border border-[#FFFCDC] noise-bg shadow-sm flex flex-col group relative overflow-hidden">
+            {/* <div className="absolute -right-6 -top-6 text-gray-100 pointer-events-none transform group-hover:scale-110 transition-transform duration-500">
               <Apple size={90} />
-            </div>
+            </div> */}
             <div className="flex items-center gap-2 mb-4 relative z-10">
               <Salad size={18} className="text-[#062e14]" />
               <h3 className="text-sm uppercase tracking-wider text-[#062e14] font-black">Food Prescription</h3>
             </div>
-            <div className="space-y-3 relative z-10 flex-1 flex flex-col justify-center">
+            <div className="space-y-3 relative z-10 flex flex-col justify-center">
               {[
                 { name: "Leafy greens", amount: "4–5 servings / wk", icon: <Salad size={16} className="text-emerald-700" /> },
                 { name: "Oily fish", amount: "2 servings / wk", icon: <Fish size={16} className="text-blue-700" /> },
                 { name: "Reduce sugar", amount: "< 25g / day", icon: <Candy size={16} className="text-amber-700" /> }
               ].map((food, idx) => (
-                <div key={idx} className="bg-[#f8f9f5] p-3 rounded-2xl border border-gray-100 flex items-center justify-between shadow-xs">
+                <div key={idx} className="bg-[#f8f9f5] p-3 rounded-2xl border border-gray-100 flex items-center justify-between shadow-sm">
                   <div className="flex items-center gap-2">
                     {food.icon}
                     <span className="text-xs font-extrabold text-gray-900">{food.name}</span>
                   </div>
-                  <span className="text-[10px] font-mono font-black text-gray-700 bg-gray-200 px-2 py-0.5 rounded-md">
+                  <span className="text-[10px] font-mono font-bold text-[#5F3F0C]px-2 py-0.5 rounded-md">
                     {food.amount}
                   </span>
                 </div>
@@ -570,7 +569,7 @@ export default function HealthReportPage() {
           <VerdictColumn
             title="Dailies"
             icon={<CalendarDays size={18} className="text-slate-800" />}
-            tint="bg-[#8fa8c8]/30 border-[#8fa8c8]/50"
+            tint="bg-[#81ABE0]/80 border-[#8fa8c8]/50"
             accentText="text-slate-800"
             accentBtn="bg-slate-700 hover:bg-slate-800"
             existingItems={existingDailies}
@@ -586,7 +585,7 @@ export default function HealthReportPage() {
           <VerdictColumn
             title="Habits"
             icon={<Sparkles size={18} className="text-emerald-950" />}
-            tint="bg-[#8fa96b]/30 border-[#8fa96b]/50"
+            tint="bg-[#C3E29E] border-[#8fa96b]/50"
             accentText="text-emerald-950"
             accentBtn="bg-emerald-700 hover:bg-emerald-800"
             existingItems={existingHabits}
@@ -614,7 +613,7 @@ export default function HealthReportPage() {
               label="High compliance"
               pct={forecast?.high_compliance?.compliance_pct}
               horizons={forecast?.high_compliance?.horizons || []}
-              tone="emerald"
+              tone="blue"
             />
             <ForecastTable
               label="Low compliance"
@@ -673,9 +672,9 @@ function VerdictColumn({
   };
 
   return (
-    <div className={`rounded-3xl p-5 ${tint} shadow-sm flex flex-col justify-between`}>
+    <div className={`rounded-3xl p-5 ${tint} noise-bg shadow-sm flex flex-col justify-between`}>
       <div>
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-4 z-10">
           <div className="flex items-center gap-2">
             {icon}
             <h3 className={`text-sm uppercase tracking-wider font-black ${accentText}`}>{title}</h3>
@@ -751,13 +750,13 @@ function VerdictColumn({
 
       {/* Manual "doctor prescribed" add — writes straight to the DB via
           /twin/{habits|dailies}/sync, independent of the LLM. */}
-      <div className="mt-4 pt-4 border-t border-white/40">
+      <div className="mt-4 pt-4 border-t border-white/40 z-10">
         {!showAddForm ? (
           <button
             onClick={() => setShowAddForm(true)}
             className={`w-full flex items-center justify-center gap-1.5 text-white text-[11px] font-black uppercase tracking-wider px-3 py-2 rounded-xl ${accentBtn}`}
           >
-            <Plus size={13} /> Add doctor-prescribed
+            <Plus size={13} /> Add Suggestions
           </button>
         ) : (
           <div className="bg-white/80 p-3 rounded-2xl border border-gray-200 space-y-2">
@@ -834,10 +833,10 @@ function ForecastTable({
   label: string;
   pct?: number;
   horizons: Horizon[];
-  tone: "emerald" | "orange";
+  tone: "blue" | "orange" ;
 }) {
-  const toneClasses = tone === "emerald"
-    ? "from-emerald-50 to-teal-100 border-emerald-200 text-emerald-950"
+  const toneClasses = tone === "blue"
+    ? "from-blue-50 to-indigo-100 border-blue-200 text-blue-950"
     : "from-red-50 to-orange-100 border-orange-200 text-orange-950";
 
   return (
